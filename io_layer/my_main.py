@@ -5,10 +5,8 @@ from io_layer.training.scrape_data import *
 
 if __name__ == "__main__":
 
-    if len(sys.argv) == 1:
-        reset_weights()
-        request(sys.argv[1])
-    
+    assert len(sys.argv) > 1
+        
     match sys.argv[1]:
         case "train":
             train()
@@ -17,4 +15,4 @@ if __name__ == "__main__":
         case "get_data":
             scrape()
         case _:
-            pass
+            request(sys.argv[1])

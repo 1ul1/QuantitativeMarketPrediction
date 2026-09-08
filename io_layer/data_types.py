@@ -20,19 +20,21 @@ class Sample(ctypes.Structure):
 
     def __init__(self, v = 0, vw = 0, o = 0, c = 0, h = 0, l = 0, t = 0, n = 0):
         super().__init__()
+        try:
+            self.v = v
+            self.vw = vw
+            self.o = o
+            self.c = c
+            self.h = h
+            self.l = l
+            self.t = int(1)
+            self.n = n
+            assert not any(field <= 0 for field in (v, vw, o, c, h, l, self.t, n))
+            
+        except Exception as e:
+            print(e)
+            print(f"BAD Samples \n{v} {vw} {o} {c} {h} {l} {t} {n}")
         
-        self.v = v
-        self.vw = vw
-        self.o = o
-        self.c = c
-        self.h = h
-        self.l = l
-        self.t = t
-        self.n = n
-        
-        if any(field <= 0 for field in (v, vw, o, c, h, l, t, n)):
-            print(f"BAD\n{v} {vw} {o} {c} {h} {l} {t} {n}")
-
 
 
 class Company(ctypes.Structure):
@@ -59,7 +61,7 @@ class Companies(ctypes.Structure):
         ("companies", ctypes.POINTER(Company))
     ]
 
-    def __init__(self, len_companies: int, files: list[str], company: Company = None):
+    def __init__(self, len_companies: int, files: list[str], company: Company = None, untrained: bool = False):
         super().__init__()
         
         self.len_companies = len_companies
@@ -69,16 +71,22 @@ class Companies(ctypes.Structure):
             self.companies[0] = company
             return
 
+        dir = "stocks" if not untrained else "untrained_stocks"
+
         for i, f in enumerate(files):
-            with open(f"../../../stocks/{f}", "r") as file:
+            with open(f"./io_layer/training/{dir}/{f}", "r") as file:
+                
+                f = f.split(".")[0]
+                
                 data = json.load(file)
                 try:
-                    self.companies[i] = Company(data["ticker"], data["count"], data["results"])
-                    assert data["count"] == 501
-                except:
-                    print("Invalid file or size")
-                    print(data)
-                    print(f)
+                    #self.companies[i] = Company(data["ticker"], data["count"], data["results"])
+                    data = data["bars"]
+                    self.companies[i] = Company(f, len(data[f]), data[f])
+                except Exception as e:
+                    print(e)
+                    # print(data)
+                    # print(f)
 
 
 
@@ -136,7 +144,7 @@ class Weights(ctypes.Structure):
             print(YELLOW +  f"B {i} - " + str(self.bias[i]) + RESET)
 
     def static_save(self):
-        with open(".io_layer/training/model_weights", "w") as file:
+        with open("./io_layer/training/model_weights", "w") as file:
             file.write("_".join(format(self.weights[i], ".17g") for i in range(self.len_weights)))
             file.write("_\n")
             file.write("_".join(format(self.bias[i], ".17g") for i in range(self.len_bias)))

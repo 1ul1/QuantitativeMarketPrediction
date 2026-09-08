@@ -132,10 +132,10 @@ If the most recent bar in the data belongs to today's still-open session, it's e
 ### Project Layout
 
 ```
-.
+_
 ├── LICENSE
 ├── README.md
-├── io_layer
+├── io_layer -------------------- Python side: gathers and processes stock data
 │   ├── __init__.py
 │   ├── data_types.py
 │   ├── my_main.py
@@ -144,6 +144,7 @@ If the most recent bar in the data belongs to today's still-open session, it's e
 │   │   └── model.py
 │   └── training
 │       ├── __init__.py
+│       ├── model_weights
 │       ├── scrape_data.py
 │       ├── train.py
 │       ├── market
@@ -152,30 +153,29 @@ If the most recent bar in the data belongs to today's still-open session, it's e
 │       │   └── empty
 │       └── untrained_stocks
 │           └── empty
-├── model
+├── model ----------------------- Raw C implementation of the actual model
 │   ├── Makefile
 │   ├── model_weights
 │   ├── build
 │   │   └── empty
-│   ├── features
+│   ├── features ---------------- Turns raw stock data into numerical signals
 │   │   ├── features.c
 │   │   └── features_helper.c
-│   ├── finetuning
-│   │   └── finetune.c
 │   ├── prediction
 │   │   └── predict.c
 │   ├── src
 │   │   └── main.c
-│   ├── training
-│   │   ├── centering_scaling.c
-│   │   ├── gradients.c
+│   ├── training ---------------- Contains the math for fitting the model
+│   │   ├── calculate_gradients.c
+│   │   ├── center_and_scale.c
+│   │   ├── finetune.c
 │   │   └── train.c
-│   └── utils
+│   └── utils ------------------- Shared code for computing predictions and errors
 │       ├── global.c
 │       ├── utils.c
 │       └── utils.h
 └── plots
     ├── *.png
     └── stock_universe_plots
-        ├── *.png
+        └─ *.png
 ```
