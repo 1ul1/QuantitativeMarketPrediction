@@ -3,6 +3,7 @@ import json
 from time import sleep
 
 STOCKS: list[str] = [
+    'SPY',
     'A', 'AA', 'AAL', 'AAOI', 'AAON', 'AAP', 'AAPL', 'ABBV', 'ABCB', 'ABCL',
     'ABG', 'ABM', 'ABNB', 'ABR', 'ABT', 'ACAD', 'ACGL', 'ACHR', 'ACI', 'ACIW',
     'ACLS', 'ACM', 'ACMR', 'ACN', 'ACWI', 'ADBE', 'ADC', 'ADI', 'ADM', 'ADMA',
@@ -158,7 +159,7 @@ STOCKS: list[str] = [
 ]
     
 print(len(STOCKS))
-exit()
+# exit()
 print("\n")
 
 RED = "\033[31m"
@@ -169,32 +170,36 @@ RESET = "\033[0m"
 ALPACA_KEY = os.environ.get("ALPACA_KEY")
 ALPACA_SECRET = os.environ.get("ALPACA_SECRET")
 
-for stock in STOCKS[::]:
-    command: str = 
-f"""
-curl --request GET \
-     --url 'https://data.alpaca.markets/v2/stocks/bars?symbols={}&timeframe=1D&start=2016-01-01&end=2026-09-01&limit=10000&adjustment=all&feed=sip&sort=asc' \
-     --header 'APCA-API-KEY-ID: {ALPACA_KEY}' \
-     --header 'APCA-API-SECRET-KEY: {ALPACA_SECRET}' \
-     --header 'accept: application/json' \
-     > ./{stock}.json
-"""
-    
-    while True:
-        os.system(command)
-        try:
-            with open(f"./{stock}.json", "r") as f:
-                data = json.load(f)
-                assert (stock in data)
-                if len(data[stock]) == 501:
-                    print(GREEN + f"Succeeded for {stock}" + RESET)
-                else:
-                    os.system(f"rm ./{stock}.json")
-                    print(RED + f"Skipping {stock}" + RESET)
-                break
-        except Exception:
-            print(YELLOW + f"Retrying {stock}" + RESET)
-            sleep(60)
-            continue
-            
+CHECK = 0
 
+def scrape():
+    for stock in STOCKS[::]:
+        command: str = f"""
+    curl --request GET \
+        --url 'https://data.alpaca.markets/v2/stocks/bars?symbols={stock}&timeframe=1D&start=2016-01-01&end=2026-09-01&limit=10000&adjustment=all&feed=sip&sort=asc' \
+        --header 'APCA-API-KEY-ID: {ALPACA_KEY}' \
+        --header 'APCA-API-SECRET-KEY: {ALPACA_SECRET}' \
+        --header 'accept: application/json' \
+        > ./io_layer/training/stocks/{stock}.json
+    """
+        
+        while True:
+            os.system(command)
+            try:
+                with open(f"./io_layer/training/stocks/{stock}.json", "r") as f:
+                    data = json.load(f)
+                    assert (stock in data["bars"])
+                    data = data["bars"][stock]
+
+                    if CHECK == 0: CHECK = len(data)
+                    
+                    if len(data) == CHECK:
+                        print(GREEN + f"Succeeded for {stock}" + RESET)
+                    else:
+                        os.system(f"rm ./io_layer/training/stocks/{stock}.json")
+                        print(RED + f"Skipping {stock}" + RESET)
+                    break
+            except Exception:
+                print(YELLOW + f"Retrying {stock}" + RESET)
+                sleep(60)
+                continue

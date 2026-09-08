@@ -37,7 +37,7 @@ void populate_error_metrics(double** features) {
     // BIAS
     for (int time = 20; time < LAST + 1; time += 1) {
         predict(computed, features[time]);
-        expect(expected, time);
+        expect(expected, time, COMPANY);
 
         if (time + 1 < LAST + 1) {
             PREDICTION->days[0].bias += expected[0] - computed[0];
@@ -62,7 +62,7 @@ void populate_error_metrics(double** features) {
     // Standard Deviation
     for (int time = 20; time < LAST + 1; time += 1) {
         predict(computed, features[time]);
-        expect(expected, time);
+        expect(expected, time, COMPANY);
 
         if (time + 1 < LAST + 1) {
             PREDICTION->days[0].sd += pow(expected[0] - computed[0] - PREDICTION->days[0].bias, 2);

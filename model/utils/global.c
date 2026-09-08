@@ -4,6 +4,13 @@ Company* MARKET = NULL;
 Company* COMPANY = NULL;
 Weights* WEIGHTS = NULL;
 Prediction* PREDICTION = NULL;
+Companies* COMPANIES = NULL;
+Companies* UNTRAINED_COMPANIES = NULL;
+
+int NR_COMPANIES = 0;
+
+int TRAINING_LOWER_BOUND = 0;
+int TRAINING_UPPER_BOUND = 0;
 
 double ALPHA = 0.00001;
 double BETA = 0.01;

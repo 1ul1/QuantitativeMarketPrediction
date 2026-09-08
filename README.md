@@ -128,3 +128,54 @@ Current IQR
 Every time a forecast is requested for a ticker, the pretrained weights are adapted specifically to that company before predicting, using ridge regression once again.
 
 If the most recent bar in the data belongs to today's still-open session, it's excluded from both fine-tuning and calibration, so the model never trains or predicts on a price that hasn't closed yet.
+
+### Project Layout
+
+```
+.
+├── LICENSE
+├── README.md
+├── io_layer
+│   ├── __init__.py
+│   ├── data_types.py
+│   ├── my_main.py
+│   ├── model
+│   │   ├── __init__.py
+│   │   └── model.py
+│   └── training
+│       ├── __init__.py
+│       ├── scrape_data.py
+│       ├── train.py
+│       ├── market
+│       │   └── empty
+│       ├── stocks
+│       │   └── empty
+│       └── untrained_stocks
+│           └── empty
+├── model
+│   ├── Makefile
+│   ├── model_weights
+│   ├── build
+│   │   └── empty
+│   ├── features
+│   │   ├── features.c
+│   │   └── features_helper.c
+│   ├── finetuning
+│   │   └── finetune.c
+│   ├── prediction
+│   │   └── predict.c
+│   ├── src
+│   │   └── main.c
+│   ├── training
+│   │   ├── centering_scaling.c
+│   │   ├── gradients.c
+│   │   └── train.c
+│   └── utils
+│       ├── global.c
+│       ├── utils.c
+│       └── utils.h
+└── plots
+    ├── *.png
+    └── stock_universe_plots
+        ├── *.png
+```

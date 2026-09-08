@@ -1,10 +1,10 @@
-import os
-import sys
-import ssl
+"""
+Bridge to raw C code.
+All such logic lives here, the other files are for parsin, reading, outputing the data.
+"""
+
 import json
 import ctypes
-from datetime import date
-from urllib.request import urlopen
 
 class Sample(ctypes.Structure):
     _fields_ = [
@@ -31,8 +31,9 @@ class Sample(ctypes.Structure):
         self.n = n
         
         if any(field <= 0 for field in (v, vw, o, c, h, l, t, n)):
-            print("Not good, ruins training data")
-            print(f"{v} {vw} {o} {c} {h} {l} {t} {n}")
+            print(f"BAD\n{v} {vw} {o} {c} {h} {l} {t} {n}")
+
+
 
 class Company(ctypes.Structure):
     _fields_ = [
@@ -49,6 +50,37 @@ class Company(ctypes.Structure):
 
         for i, row in enumerate(results):
             self.samples[i] = Sample(row["v"], row["vw"], row["o"], row["c"], row["h"], row["l"], row["t"], row["n"])
+
+
+            
+class Companies(ctypes.Structure):
+    _fields_ = [
+        ("len_companies", ctypes.c_int),
+        ("companies", ctypes.POINTER(Company))
+    ]
+
+    def __init__(self, len_companies: int, files: list[str], company: Company = None):
+        super().__init__()
+        
+        self.len_companies = len_companies
+        self.companies = None if len_companies == 0 else (Company * len_companies)()
+
+        if company and not files:
+            self.companies[0] = company
+            return
+
+        for i, f in enumerate(files):
+            with open(f"../../../stocks/{f}", "r") as file:
+                data = json.load(file)
+                try:
+                    self.companies[i] = Company(data["ticker"], data["count"], data["results"])
+                    assert data["count"] == 501
+                except:
+                    print("Invalid file or size")
+                    print(data)
+                    print(f)
+
+
 
 class Weights(ctypes.Structure):
     _fields_ = [
@@ -78,28 +110,49 @@ class Weights(ctypes.Structure):
         self.means = (ctypes.c_double * (len_weights // len_bias))()
         self.standard_deviations = (ctypes.c_double * (len_weights // len_bias))()
 
-        if not weights or not bias or not means or not standard_deviations:
-            
-            for i in range(len_weights):
-                self.weights[i] = 0
-            for i in range(len_bias):
-                self.bias[i] = 0
-            for i in range(len_weights // len_bias):
-                self.means[i] = 0
-                self.standard_deviations[i] = 0
+        for i, r in enumerate(weights):
+            self.weights[i] = r
+        for i, r in enumerate(bias):
+            self.bias[i] = r
 
-        else:
+        if bias and means:
             
-            for i, r in enumerate(weights):
-                self.weights[i] = r
-            for i, r in enumerate(bias):
-                self.bias[i] = r
             for i, r in enumerate(means):
                 self.means[i] = r
             for i, r in enumerate(standard_deviations):
                 self.standard_deviations[i] = r
-            
 
+        else:
+            
+            for i in range(len_weights // len_bias):
+                self.means[i] = 0
+            for i in range(len_weights // len_bias):
+                self.standard_deviations[i] = 0
+
+    def print(self):
+        for i in range(self.len_weights):
+            print(GREEN + f"W {i} - " + str(self.weights[i]) + RESET)
+        for i in range(self.len_bias):
+            print(YELLOW +  f"B {i} - " + str(self.bias[i]) + RESET)
+
+    def static_save(self):
+        with open(".io_layer/training/model_weights", "w") as file:
+            file.write("_".join(format(self.weights[i], ".17g") for i in range(self.len_weights)))
+            file.write("_\n")
+            file.write("_".join(format(self.bias[i], ".17g") for i in range(self.len_bias)))
+            file.write("_\n")
+            file.write("_".join(format(self.means[i], ".17g") for i in range(self.len_weights // self.len_bias)))
+            file.write("_\n")
+            file.write("_".join(format(self.standard_deviations[i], ".17g") for i in range(self.len_weights // self.len_bias)))
+            file.write("_\n")
+            print("Weights Saved!\n")
+
+            for i in range(self.len_weights // self.len_bias):
+                self.means[i] = 0
+                self.standard_deviations[i] = 0
+
+
+            
 class Day(ctypes.Structure):
     _fields_ = [
         ("bias", ctypes.c_double),
@@ -119,6 +172,8 @@ class Day(ctypes.Structure):
         self.expected_price = expected_price
         self.starting_price = starting_price
         self.forecast_strength = forecast_strength
+
+
 
 class Prediction(ctypes.Structure):
     _fields_ = [
@@ -145,10 +200,7 @@ class Prediction(ctypes.Structure):
                 f"\nexpected_price {self.days[i].expected_price}\nstarting_price {self.days[i].starting_price}\nforecast_strength {self.days[i].forecast_strength}\n"
             )
 
-lib = ctypes.CDLL("./build/libmodel.dylib")
-
-lib.start.argtypes = [Company, Company, Weights, ctypes.POINTER(Prediction)]
-lib.start.restype = None
+lib = ctypes.CDLL("./model/build/libmodel.dylib")
 
 lib.get_nr_features.argtypes = []
 lib.get_nr_features.restype = ctypes.c_int
@@ -156,67 +208,8 @@ lib.get_nr_features.restype = ctypes.c_int
 lib.get_nr_models.argtypes = []
 lib.get_nr_models.restype = ctypes.c_int
 
-API_KEY = os.environ.get("MASSIVE_KEY")
+lib.model.argtypes = [Companies, Company, Weights, ctypes.POINTER(Prediction)]
+lib.model.restype = None
 
-RESET_WEIGHTS = 1
-
-def request(ticker) -> Prediction:
-
-    ticker = ticker.upper()
-    
-    until: str = str(sys.argv[2]) if len(sys.argv) == 3 else str(date.today())
-
-    if RESET_WEIGHTS == 0:
-        weights = Weights(lib.get_nr_features() * lib.get_nr_models(), lib.get_nr_models())
-    else:
-        file = open("./model_weights", "r")
-        weights_data, bias_data = file.readline(), file.readline()
-        means_data, standard_deviations_data = file.readline(), file.readline()
-
-        weights_data = [float(value) for value in weights_data.split("_")[:-1:]]
-        bias_data = [float(value) for value in bias_data.split("_")[:-1:]]
-        means_data = [float(value) for value in means_data.split("_")[:-1:]]
-        standard_deviations_data = [float(value) for value in standard_deviations_data.split("_")[:-1:]]
-
-        weights = Weights(
-            len(weights_data), len(bias_data), weights_data, bias_data, means_data, standard_deviations_data
-        )
-        
-    url = (
-        'https://api.massive.com/v2/aggs/ticker/'
-        + ticker +
-        '/range/1/day/2023-06-23/'
-        + until +
-        '?adjusted=true&sort=asc&limit=1000&apiKey='
-        + API_KEY
-    )
-    url_market = (
-        'https://api.massive.com/v2/aggs/ticker/SPY/range/1/day/2023-06-23/'
-        + until +
-        '?adjusted=true&sort=asc&limit=1000&apiKey='
-        + API_KEY
-    )
-
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-    
-    response = urlopen(url, context = ctx)
-    response_market = urlopen(url_market, context = ctx)
-    
-    data = json.load(response)
-    data_market = json.load(response_market)
-
-    assert data["resultsCount"] == data_market["resultsCount"]
-
-    company = Company(data["ticker"], data["count"], data["results"])
-    market = Company(data_market["ticker"], data_market["count"], data_market["results"])
-
-    prediction: Prediction = Prediction(4)
-    lib.start(company, market, weights, ctypes.byref(prediction))
-    prediction.print()
-
-    return prediction
-
-if __name__ == "__main__":
-    request(str(sys.argv[1]))
+lib.training.argtypes = [Companies, Companies, Company, Weights]
+lib.training.restype = None
