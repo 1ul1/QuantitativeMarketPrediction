@@ -10,7 +10,9 @@ void finetune(
 
         double alpha = ALPHA * exp((-1) * BETA * k);
             
-        for (int time = 20; time < LAST + 1; time += 1) {
+        for (int time = 20; time < LAST; time += 1) {
+
+            if (TRAINING_LOWER_BOUND <= time && time < TRAINING_UPPER_BOUND) {continue;}
             
             double* updates = (double*)calloc(WEIGHTS->len_weights + WEIGHTS->len_bias, sizeof(double));
 

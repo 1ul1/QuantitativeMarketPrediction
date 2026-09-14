@@ -15,25 +15,6 @@ void print_weights() {
 }
 
 
-int is_today(const Company* company) {
-    time_t  current_time = time(NULL),
-            given_time = (
-                (time_t)(company->samples[company->count - 1].t / 1000.0)
-            );
-    struct tm given, current; 
-    localtime_r(&given_time, &given);
-    localtime_r(&current_time, &current);
-
-    return (
-        given.tm_yday == current.tm_yday && given.tm_year == current.tm_year
-    );
-}
-
-
-// ---------------------------------------------------------------------------
-//                                                             Verify Training
-// ---------------------------------------------------------------------------
-
 void predict(double* res, double* features) {
 
     res[0] = 0;
@@ -57,16 +38,16 @@ void expect(double* res, int time, Company* company) {
     res[2] = 0;
     res[3] = 0;
 
-    if (time + 1 <= LAST) {
+    if (time + 1 < LAST) {
         res[0] = log(company->samples[time + 1].c  / company->samples[time].c);
     }
-    if (time + 5 <= LAST) {
+    if (time + 5 < LAST) {
         res[1] = log(company->samples[time + 5].c  / company->samples[time].c); 
     }
-    if (time + 10 <= LAST) {
+    if (time + 10 < LAST) {
         res[2] = log(company->samples[time + 10].c / company->samples[time].c);
     }
-    if (time + 20 <= LAST) {
+    if (time + 20 < LAST) {
         res[3] = log(company->samples[time + 20].c / company->samples[time].c);
     }
 }
@@ -88,8 +69,10 @@ void error(double* ans, double*** features, int toggle) {
 
     for (int time = start; time < end; time += 1) {
 
-        if (toggle == 1 && 
-            TRAINING_LOWER_BOUND <= time && time < TRAINING_UPPER_BOUND
+        if (
+            (toggle == 1 && (TRAINING_LOWER_BOUND <= time && time < TRAINING_UPPER_BOUND))
+            ||
+            (toggle == 0 && (TRAINING_LOWER_BOUND > time || time >= TRAINING_UPPER_BOUND))
         ) {continue;}
         
         for (int i = 0; i < c->len_companies; i += 1) {
@@ -128,8 +111,10 @@ void baseline_error(double* ans, int toggle) {
 
     for (int time = start; time < end; time += 1) {
         
-        if (toggle == 1 && 
-            TRAINING_LOWER_BOUND <= time && time < TRAINING_UPPER_BOUND
+        if (
+            (toggle == 1 && (TRAINING_LOWER_BOUND <= time && time < TRAINING_UPPER_BOUND))
+            ||
+            (toggle == 0 && (TRAINING_LOWER_BOUND > time || time >= TRAINING_UPPER_BOUND))
         ) {continue;}
         
         for (int i = 0; i < c->len_companies; i += 1) {

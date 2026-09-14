@@ -9,8 +9,10 @@
 - Market reference: SPY
 - 50+ features per sample
 - 4 independent predictions (1/5/10/20 day returns)
+- Universe and forecasting are restricted to companies with a complete, strictly positive history since 2016
 - Weights are pretrained across a company universe, then fine-tuned and calibrated per ticker before each forecast
-- True out-of-sample skill is measured against a zero-return RMSE, on unseen stocks during a time window excluded from training
+- A time window is excluded from all training and kept for calibration and skill measurement
+- True out-of-sample skill is measured against a zero-return RMSE, on unseen stocks during this excluded window
 
 ## Output
 
@@ -21,63 +23,83 @@ For a given ticker and date, each of the 4 horizons returns:
 - **Expected price**: starting price × exp(expected return)
 - **Residual bias**: the ticker's average historical miss for this horizon, converted to dollars
 - **Residual standard deviation**: the spread of residuals after the bias correction, converted to dollars
-- **Forecast strength**: z-score of how unusual this forecast is relative to the ticker's own noise (computed before the dollar conversion)
+- **Forecast strength**: z-score of how unusual this forecast is relative to the ticker's own noise
+
+*Note: the latter three are computed only on the time window excluded from training & finetuning.*
 
 ## Features & Mathematics
 
-72 features per sample, computed for both the stock and the market (SPY).
+Notations: daily log return $r_s=\ln(C_s/C_{s-1})$, lookback window $L\in\{5,10,20\}$ (for my horizons), $S$ = stock, $M$ = market.
 
-Notation: daily log return $r_s=\ln(C_s/C_{s-1})$, window $W_L(t)=\{t-L+1,\dots,t\}$ with $L\in\{5,10,20\}$ (for my horizons), $S$ = stock, $M$ = market.
+- **Momentum**: log return
 
-- **Momentum**: log return over the lookback window
+  $$\ln\frac{C_t}{C_{t-L}}$$
 
-- **Relative volume**: today's volume vs. its rolling average
+- **Relative volume**: today's volume vs its average
+
+  $$\ln\frac{V_t}{\bar V_L}$$
 
 - **Volatility**: standard deviation of daily log returns
 
-  $$\sqrt{\frac{1}{L}\sum\big(r_s-\bar r_L\big)^2}$$
+  $$\sqrt{\frac{1}{L}\sum\big(r_i-\bar r\big)^2}$$
 
-- **Dispersion**: how spread out the price path is around its own mean, i.e. the standard deviation of closes
+- **Dispersion**: how spread out the price path is around its own mean, divided by that mean
 
-  $$\sqrt{\frac{1}{L}\sum\big(C_s-\bar C_L\big)^2}$$
+  $$\frac{1}{\bar C}\sqrt{\frac{1}{L}\sum\big(C_i-\bar C\big)^2}$$
 
-- **Stability**: how much day-to-day *changes* in returns fluctuate, i.e. the RMS of the change in returns
+- **Stability**: how much returns fluctuate, the RMS of the change in returns
 
-  $$\sqrt{\frac{1}{L-1}\sum\big(r_s-r_{s-1}\big)^2}$$
+  $$\sqrt{\frac{1}{L-1}\sum\big(r_i-r_{i-1}\big)^2}$$
 
-- **Persistence**: autocorrelation of returns (continuation vs. reversion), the lag-1 Pearson correlation
+- **Persistence**: the lag-1 Pearson correlation
 
-  $$\frac{\frac{1}{L-1}\sum\big(r_s-\bar X\big)\big(r_{s+1}-\bar Y\big)}{\sigma_X\,\sigma_Y}$$
+  $$\frac{\frac{1}{L-1}\sum\big(r_i-\bar r_X\big)\big(r_{i+1}-\bar r_Y\big)}{\sigma_X\,\sigma_Y}$$
 
-- **Gap, intraday move, range, closing strength**: same-day price action
+  $X$ = first $L-1$ returns of the window, $Y$ = last $L-1$.
 
-- **Relative VWAP, relative transaction count, average trade-size slope**
+- **Gap, intraday move, range, closing strength**: same day price action
 
-- **Relative volatility** (stock vs. market): stock returns dispersed around the *market's* mean return
+  $$\ln\frac{O_t}{C_{t-1}}\qquad \ln\frac{C_t}{O_t}\qquad \ln\frac{\mathrm{Hi}_t}{\mathrm{Lo}_t}\qquad \frac{C_t-\mathrm{Lo}_t}{\mathrm{Hi}_t-\mathrm{Lo}_t}$$
 
-  $$\sqrt{\frac{1}{L}\sum\big(r-\bar r\big)^2}$$
+- **Relative VWAP, relative transaction count**: like relative volume
+
+  $$\ln\frac{VW_t}{\overline{VW}_L}\qquad \ln\frac{N_t}{\bar N_L}$$
+
+- **Average trade size slope**: today's dollar size per trade against the window's
+
+  $$\ln\frac{VW_t\,V_t/N_t}{\sum VW\,V\big/\sum N}$$
+
+- **Relative volatility** (stock vs market): stock returns dispersed around the *market's* mean return
+
+  $$\sqrt{\frac{1}{L}\sum\big(r_S-\bar r_M\big)^2}$$
 
 - **Market correlation** (stock vs. market): Pearson correlation between stock and market returns
 
-  $$\frac{\frac{1}{L}\sum\big(r_s-\bar r_s\big)\big(r_m-\bar r_m\big)}{\sigma_s\,\sigma_m}$$
+  $$\frac{\frac{1}{L}\sum\big(r_S-\bar r_S\big)\big(r_M-\bar r_M\big)}{\sigma_S\,\sigma_M}$$
 
-- **Market beta**: stock sensitivity to market returns
+- **Market beta**: stock sensitivity to market returns, fit on the $L-1$ returns ending at $t-1$, so today stays out of the fit
 
-  $$\frac{\frac{1}{L}\sum\big(r_s-\bar r_s\big)\big(r_m-\bar r_m\big)}{\sigma_m^2}$$
+  $$\frac{\frac{1}{L-1}\sum\big(r_S-\bar r_S\big)\big(r_M-\bar r_M\big)}{\sigma_M^2}$$
 
-- **Residual return**: stock return unexplained by the market
+- **Residual return**: stock return unexplained by the market, over the same window as $\beta$
 
-  $$r_{s,t}-\alpha-\beta r_{m,t}\qquad \text{with}\qquad \alpha=\bar r_s-\beta\bar r_m$$
+  $$r_{S,t}-\alpha-\beta\,r_{M,t}\qquad \text{with}\qquad \alpha=\bar r_S-\beta\,\bar r_M$$
 
-- **Centering and scaling** | uses the training set mean and standard deviation:
+- **Centering and scaling**: uses the training set mean and standard deviation:
 
 $$z=\frac{x-\bar x}{\sigma_x}$$
+
 
 ## Training universe
 
 One JSON file per company, plus a single SPY file used as the market reference. All are aligned in time and for each day they reveal `v`, `vw`, `o`, `c`, `h`, `l`, `t`, `n`.
 
-Every sample is validated, any faulty data (either missing timeframes or null fields) does not enter training.
+A company enters the universe only if:
+ 
+- every field of every sample is strictly positive
+- the history is complete and unbroken over the full data range
+
+Everything else is dropped by the scraper. The same check runs before a forecast, so a ticker that could not have entered training cannot be predicted on either.
 
 ![Price distribution](plots/stock_universe_plots/price_distribution.png)
 
@@ -102,18 +124,20 @@ All parameters flow through both training stages below: first fit across the who
 
 ## Training - 2 stages
 
-### Stage 1 | Cross-sectional pretraining (`training.c`)
+### Stage 1 | Cross-sectional pretraining
 
-Walks forward through calendar time across the *entire* company universe at once:
+Two globals denoting Unix millisecond timestamps hold a calendar window that is excluded from training & finetuning.
+
+Training walks forward through calendar time across the *entire* company universe, skipping the excluded window:
 
 1. At each trading day, compute the prediction error for every company in the universe and average the gradient across all of them: a full batch over the cross-section, to minimize the effects of constant Market features among all companies on that day.
-2. After a full walk through, recompute RMSE on all 4 horizons. If every horizon got strictly worse, halve the learning rate, otherwise repeat.
+2. After a full pass, recompute RMSE on all 4 horizons. If every horizon got strictly worse, halve the learning rate, otherwise repeat.
 
-They are also constantly statically saved on disk every couple of cycles during training.
+The weights are also constantly saved statically on disk every couple of cycles during training.
 
 ### Centering and scaling
 
-All features are now centered and scaled using each feature's row's mean and standard deviation. Without it training proved to be too slow, as below is the graph of the weights' evolution over a couple hours of training...
+All features are centered and scaled using each feature's row's mean and standard deviation. Without it training proved to be too slow. Below is the graph of the weights' evolution over a couple hours of training...
 
 ![Weight heatmap](plots/weight_heatmap.png)
 
@@ -123,11 +147,16 @@ Current IQR
 
 ![Weight IQR](plots/iqr_indexed.png)
 
-### Stage 2 | Per-ticker fine-tuning & calibration (`model.c`)
+### Stage 2 | Per-ticker finetuning & calibration
 
 Every time a forecast is requested for a ticker, the pretrained weights are adapted specifically to that company before predicting, using ridge regression once again.
 
-If the most recent bar in the data belongs to today's still-open session, it's excluded from both fine-tuning and calibration, so the model never trains or predicts on a price that hasn't closed yet.
+If the most recent bar in the data belongs to today's still-open session, it's excluded from both fine-tuning and calibration, so the model never finetunes or predicts on a price that hasn't closed yet.
+
+1. **Fine-tune** on that one company, over its whole history except the excluded window.
+2. **Calibrate** on the excluded window only. Predictions there are compared against what actually happened, giving the per-horizon bias and after removing it, the residual standard deviation. Neither stage fit on that window, so these are real out-of-sample residuals for this ticker.
+3. **Predict** from the last closed bar, apply the bias, divide by the residual standard deviation for the forecast strength.
+
 
 ### Project Layout
 
@@ -173,6 +202,7 @@ _
 │   └── utils ------------------- Shared code for computing predictions and errors
 │       ├── global.c
 │       ├── utils.c
+│       ├── time.c
 │       └── utils.h
 └── plots
     ├── *.png

@@ -37,30 +37,31 @@ void train(
     for (int i = 0; i < 4; i += 1) {
         printf("RMSE %.16f for Layer %d\n", ans1[i],i);
     }
+    
+    for (int k = 0; k < EPOCHS; k += 1) {
+
+        double alpha = ALPHA * exp((-1) * BETA * k);
         
-    for (int time = 20; time < MARKET->count; time += 1) {
+        for (int time = 20; time < MARKET->count; time += 1) {
 
-        if (TRAINING_LOWER_BOUND <= time && time < TRAINING_UPPER_BOUND) {continue;}
-        
-        for (int k = 0; k < EPOCHS; k += 1) {
-            double* updates = (double*)calloc(WEIGHTS->len_weights + WEIGHTS->len_bias, sizeof(double));
-
-            double alpha = ALPHA * exp((-1) * BETA * k);
-
-            // calculate gi for each wi and save it in updates
-            for (int i = 0; i < NR_COMPANIES; i += 1) {
-                process_one_company(&(companies.companies[i]), updates, time, features[time][i]);
-            }
-
-            // update wi using -= ALPHA * gi
-            for (int i = 0; i < WEIGHTS->len_weights; i += 1) {
-                WEIGHTS->weights[i] -= alpha * updates[i];
-            }
-            for (int i = 0; i < WEIGHTS->len_bias; i += 1) {
-                WEIGHTS->bias[i] -= alpha * updates[WEIGHTS->len_weights + i];
-            }
+            if (TRAINING_LOWER_BOUND <= time && time < TRAINING_UPPER_BOUND) {continue;}
             
-            free(updates);
+                double* updates = (double*)calloc(WEIGHTS->len_weights + WEIGHTS->len_bias, sizeof(double));
+
+                // calculate gi for each wi and save it in updates
+                for (int i = 0; i < NR_COMPANIES; i += 1) {
+                    process_one_company(&(companies.companies[i]), updates, time, features[time][i]);
+                }
+
+                // update wi using -= ALPHA * gi
+                for (int i = 0; i < WEIGHTS->len_weights; i += 1) {
+                    WEIGHTS->weights[i] -= alpha * updates[i];
+                }
+                for (int i = 0; i < WEIGHTS->len_bias; i += 1) {
+                    WEIGHTS->bias[i] -= alpha * updates[WEIGHTS->len_weights + i];
+                }
+                
+                free(updates);
         }
     }
 

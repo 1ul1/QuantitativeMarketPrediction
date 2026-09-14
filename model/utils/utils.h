@@ -166,6 +166,8 @@ extern Companies* UNTRAINED_COMPANIES;
 
 extern int NR_COMPANIES;
 
+extern double TRAINING_LOWER_BOUND_TIMESTAMP;
+extern double TRAINING_UPPER_BOUND_TIMESTAMP;
 extern int TRAINING_LOWER_BOUND;
 extern int TRAINING_UPPER_BOUND;
 
@@ -184,8 +186,10 @@ extern int NR_THREADS;
 extern int get_nr_features();
 extern int get_nr_models();
 
-void print_weights();
 int is_today(const Company* company);
+int find_bound(double t);
+
+void print_weights();
 void predict(double* res, double* features);
 void expect(double* res, int time, Company* company);
 void error(double* ans, double*** features, int toggle);

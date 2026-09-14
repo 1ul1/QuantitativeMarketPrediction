@@ -5,6 +5,7 @@ All such logic lives here, the other files are for parsin, reading, outputing th
 
 import json
 import ctypes
+from datetime import datetime
 
 class Sample(ctypes.Structure):
     _fields_ = [
@@ -27,13 +28,14 @@ class Sample(ctypes.Structure):
             self.c = c
             self.h = h
             self.l = l
-            self.t = int(1)
+            self.t = int(datetime.fromisoformat(t).timestamp() * 1000)
             self.n = n
             assert not any(field <= 0 for field in (v, vw, o, c, h, l, self.t, n))
             
         except Exception as e:
             print(e)
             print(f"BAD Samples \n{v} {vw} {o} {c} {h} {l} {t} {n}")
+            raise
         
 
 
@@ -51,7 +53,11 @@ class Company(ctypes.Structure):
         self.samples = None if count == 0 else (Sample * count)()
 
         for i, row in enumerate(results):
-            self.samples[i] = Sample(row["v"], row["vw"], row["o"], row["c"], row["h"], row["l"], row["t"], row["n"])
+            try:
+                self.samples[i] = Sample(row["v"], row["vw"], row["o"], row["c"], row["h"], row["l"], row["t"], row["n"])
+            except Exception as e:
+                print(f"BAD COMPANY IS {ticker}")
+                raise
 
 
             
@@ -196,6 +202,9 @@ class Prediction(ctypes.Structure):
         self.today = 0
         self.len_days = len_days
         self.days = (Day * len_days)()
+
+        for i in range(len_days):
+            self.days[i] = Day()
 
     def print(self):
         print(f"Today: {self.today}\n")

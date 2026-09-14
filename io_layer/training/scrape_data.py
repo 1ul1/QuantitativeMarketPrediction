@@ -1,7 +1,10 @@
 import os
 import json
 from time import sleep
+from random import random
+from datetime import date, timedelta
 
+# The training universe
 STOCKS: list[str] = [
     'SPY',
     'A', 'AA', 'AAL', 'AAOI', 'AAON', 'AAP', 'AAPL', 'ABBV', 'ABCB', 'ABCL',
@@ -149,37 +152,52 @@ ALPACA_KEY = os.environ.get("ALPACA_KEY")
 ALPACA_SECRET = os.environ.get("ALPACA_SECRET")
 
 CHECK = 0
+YESTERDAY = str(date.today() - timedelta(days=1))
 
 def scrape():
     global CHECK
     
     for stock in STOCKS[::]:
+
+        saved_file = (
+            f"./io_layer/training/stocks/{stock}.json"
+            if not int(random() * 10) % 10 == 0 else
+            f"./io_layer/training/untrained_stocks/{stock}.json"
+        )
+
         command: str = f"""
-    curl --request GET \
-        --url 'https://data.alpaca.markets/v2/stocks/bars?symbols={stock}&timeframe=1D&start=2016-01-01&end=2026-09-01&limit=10000&adjustment=all&feed=sip&sort=asc' \
-        --header 'APCA-API-KEY-ID: {ALPACA_KEY}' \
-        --header 'APCA-API-SECRET-KEY: {ALPACA_SECRET}' \
-        --header 'accept: application/json' \
-        > ./io_layer/training/stocks/{stock}.json
-    """
+curl --request GET \
+    --url 'https://data.alpaca.markets/v2/stocks/bars?symbols={stock}&timeframe=1D&start=2016-01-01&end={YESTERDAY}&limit=10000&adjustment=all&feed=sip&sort=asc' \
+    --header 'APCA-API-KEY-ID: {ALPACA_KEY}' \
+    --header 'APCA-API-SECRET-KEY: {ALPACA_SECRET}' \
+    --header 'accept: application/json' \
+    > {saved_file}
+"""
         
         while True:
             os.system(command)
             try:
-                with open(f"./io_layer/training/stocks/{stock}.json", "r") as f:
+                with open(saved_file, "r") as f:
                     data = json.load(f)
                     assert (stock in data["bars"])
                     data = data["bars"][stock]
 
                     if CHECK == 0: CHECK = len(data)
-                    
-                    if len(data) == CHECK:
+                    try:
+                        assert stock.split(".")[0] == stock
+                        assert len(data) == CHECK
+
+                        # ensure strictly positive values only
+                        for row in data:
+                            assert not any(field <= 0 for field in (row["v"], row["vw"], row["o"], row["c"], row["h"], row["l"], row["n"]))
+                        
                         print(GREEN + f"Succeeded for {stock}" + RESET)
-                    else:
-                        os.system(f"rm ./io_layer/training/stocks/{stock}.json")
+                    except Exception as e:
+                        os.system("rm " + saved_file)
                         print(RED + f"Skipping {stock}" + RESET)
                     break
-            except Exception:
+            except Exception as e:
                 print(YELLOW + f"Retrying {stock}" + RESET)
                 sleep(60)
                 continue
+

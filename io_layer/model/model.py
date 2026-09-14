@@ -19,8 +19,6 @@ RESET_WEIGHTS = 1
 def request(ticker) -> Prediction:
 
     ticker = ticker.upper()
-    
-    until: str = str(sys.argv[2]) if len(sys.argv) == 3 else str(date.today())
 
     if RESET_WEIGHTS == 0:
         weights = Weights(lib.get_nr_features() * lib.get_nr_models(), lib.get_nr_models())
@@ -37,21 +35,26 @@ def request(ticker) -> Prediction:
         weights = Weights(
             len(weights_data), len(bias_data), weights_data, bias_data, means_data, standard_deviations_data
         )
-        
-    url = (
-        'https://api.massive.com/v2/aggs/ticker/'
-        + ticker +
-        '/range/1/day/2023-06-23/'
-        + until +
-        '?adjusted=true&sort=asc&limit=1000&apiKey='
-        + API_KEY
-    )
-    url_market = (
-        'https://api.massive.com/v2/aggs/ticker/SPY/range/1/day/2023-06-23/'
-        + until +
-        '?adjusted=true&sort=asc&limit=1000&apiKey='
-        + API_KEY
-    )
+
+    YESTERDAY = str(date.today() - timedelta(days=1))
+    
+    url = f"""
+curl --request GET \
+    --url 'https://data.alpaca.markets/v2/stocks/bars?symbols={ticker}&timeframe=1D&start=2016-01-01&end=\
+{YESTERDAY}&limit=10000&adjustment=all&feed=sip&sort=asc' \
+    --header 'APCA-API-KEY-ID: {ALPACA_KEY}' \
+    --header 'APCA-API-SECRET-KEY: {ALPACA_SECRET}' \
+    --header 'accept: application/json' \
+"""
+    url_market = f"""
+curl --request GET \
+    --url 'https://data.alpaca.markets/v2/stocks/bars?symbols=SPY&timeframe=1D&start=2016-01-01&end=\
+{YESTERDAY}&limit=10000&adjustment=all&feed=sip&sort=asc' \
+    --header 'APCA-API-KEY-ID: {ALPACA_KEY}' \
+    --header 'APCA-API-SECRET-KEY: {ALPACA_SECRET}' \
+    --header 'accept: application/json' \
+    > {saved_file}
+"""
 
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
@@ -63,14 +66,15 @@ def request(ticker) -> Prediction:
     data = json.load(response)
     data_market = json.load(response_market)
 
-    assert data["resultsCount"] == data_market["resultsCount"]
+    assert len(data["bars"][ticker]) == len(data_market["bars"]["SPY"])
 
-    company = Company(data["ticker"], data["count"], data["results"])
+    company = Company(ticker, len(data["bars"][ticker]), data["bars"][ticker])
     companies = Companies(1, None, company)
-    market = Company(data_market["ticker"], data_market["count"], data_market["results"])
+    market = Company("SPY", len(data_market["bars"]["SPY"]), data_market["bars"]["SPY"])
 
     prediction: Prediction = Prediction(4)
     lib.model(companies, market, weights, ctypes.byref(prediction))
     prediction.print()
 
     return prediction
+

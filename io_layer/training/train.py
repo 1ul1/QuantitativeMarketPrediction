@@ -32,6 +32,8 @@ def reset_weights():
 
 def train():
     global MARKET, COMPANIES, WEIGHTS
+
+    reset_weights()
     
     files = os.listdir("./io_layer/training/stocks")
     
