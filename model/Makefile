@@ -1,6 +1,6 @@
 CC := gcc
 INCLUDE := -I./utils
-CFLAGS := -O2 -Wall -Wextra -fPIC
+CFLAGS := -O2 -Wall -Wextra -fPIC -fopenmp
 DEBUG := -O0 -g3 -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer
 
 SRCS := $(shell find ./ -path './general_training' -prune -o -name "*.c" -print)

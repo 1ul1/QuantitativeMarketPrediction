@@ -7,7 +7,7 @@ import os
 import sys
 import ssl
 import json
-from datetime import date
+from datetime import date, timedelta
 from urllib.request import urlopen
 
 API_KEY = os.environ.get("MASSIVE_KEY")
@@ -67,6 +67,7 @@ curl --request GET \
     data_market = json.load(response_market)
 
     assert len(data["bars"][ticker]) == len(data_market["bars"]["SPY"])
+    assert data["bars"][ticker][0]["t"] == data_market["bars"]["SPY"][0]["t"]
 
     company = Company(ticker, len(data["bars"][ticker]), data["bars"][ticker])
     companies = Companies(1, None, company)

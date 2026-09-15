@@ -10,12 +10,11 @@ void train(
 
     double*** features = (double***)malloc(sizeof(double**) * (MARKET->count));
     double*** untrained_features = (double***)malloc(sizeof(double**) * (MARKET->count));
-                
+    
     for (int time = 20; time < MARKET->count; time += 1) {
         features[time] = (double**)malloc(sizeof(double*) * NR_COMPANIES);
         for (int i = 0; i < NR_COMPANIES; i += 1) {
             features[time][i] = (double*)malloc(sizeof(double) * NR_FEATURES);
-            calculate_raw_features(features[time][i], &(COMPANIES->companies[i]), time);
         }
     }
         
@@ -23,6 +22,13 @@ void train(
         untrained_features[time] = (double**)malloc(sizeof(double*) * UNTRAINED_COMPANIES->len_companies);
         for (int i = 0; i < UNTRAINED_COMPANIES->len_companies; i += 1) {
             untrained_features[time][i] = (double*)malloc(sizeof(double) * NR_FEATURES);
+        }
+    }
+
+    #pragma omp parallel for num_threads(NR_THREADS)
+    for (int time = 20; time < MARKET->count; time += 1) {
+        for (int i = 0; i < NR_COMPANIES; i += 1) {
+            calculate_raw_features(features[time][i], &(COMPANIES->companies[i]), time);
         }
     }
     calculate_means_sds(features); // Calculates Means and SDS too
@@ -41,28 +47,47 @@ void train(
     for (int k = 0; k < EPOCHS; k += 1) {
 
         double alpha = ALPHA * exp((-1) * BETA * k);
+
+        double** individual_updates = (double**)malloc(NR_COMPANIES * sizeof(double*));
+        for (int i = 0; i < NR_COMPANIES; i += 1) {
+            individual_updates[i] = (double*)calloc(WEIGHTS->len_weights + WEIGHTS->len_bias, sizeof(double));
+        }
         
         for (int time = 20; time < MARKET->count; time += 1) {
 
             if (TRAINING_LOWER_BOUND <= time && time < TRAINING_UPPER_BOUND) {continue;}
             
-                double* updates = (double*)calloc(WEIGHTS->len_weights + WEIGHTS->len_bias, sizeof(double));
+            double* updates = (double*)calloc(WEIGHTS->len_weights + WEIGHTS->len_bias, sizeof(double));
 
-                // calculate gi for each wi and save it in updates
-                for (int i = 0; i < NR_COMPANIES; i += 1) {
-                    process_one_company(&(companies.companies[i]), updates, time, features[time][i]);
+            // calculate gi for each wi and save it in updates
+            #pragma omp parallel for num_threads(NR_THREADS)
+            for (int i = 0; i < NR_COMPANIES; i += 1) {
+                memset(individual_updates[i], 0, sizeof(double) * (WEIGHTS->len_weights + WEIGHTS->len_bias));
+                process_one_company(&(companies.companies[i]), individual_updates[i], time, features[time][i]);
+            }
+
+            #pragma omp parallel for num_threads(NR_THREADS)
+            for (int i = 0; i < WEIGHTS->len_weights + WEIGHTS->len_bias; i += 1) {
+                    for (int j = 0; j < NR_COMPANIES; j += 1) {
+                        updates[i] += individual_updates[j][i];
+                    }
                 }
 
-                // update wi using -= ALPHA * gi
-                for (int i = 0; i < WEIGHTS->len_weights; i += 1) {
-                    WEIGHTS->weights[i] -= alpha * updates[i];
-                }
-                for (int i = 0; i < WEIGHTS->len_bias; i += 1) {
-                    WEIGHTS->bias[i] -= alpha * updates[WEIGHTS->len_weights + i];
-                }
-                
-                free(updates);
+            // update wi using -= ALPHA * gi
+            for (int i = 0; i < WEIGHTS->len_weights; i += 1) {
+                WEIGHTS->weights[i] -= alpha * updates[i];
+            }
+            for (int i = 0; i < WEIGHTS->len_bias; i += 1) {
+                WEIGHTS->bias[i] -= alpha * updates[WEIGHTS->len_weights + i];
+            }
+            
+            free(updates);
         }
+
+        for (int i = 0; i < NR_COMPANIES; i += 1) {
+            free(individual_updates[i]);
+        }
+        free(individual_updates);
     }
 
     double* ans2 = calloc(4, sizeof(double));

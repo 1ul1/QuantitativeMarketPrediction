@@ -205,6 +205,8 @@ void calculate_raw_features(double* features, const Company* company, int time) 
 }
 
 void calculate_features(double** features) {
+    #pragma omp parallel for num_threads(NR_THREADS)
+    
     for (int time = 20; time < MARKET->count; time += 1) {
         calculate_raw_features(features[time], COMPANY, time);
         for (int f = 0; f < NR_FEATURES; f += 1) {
