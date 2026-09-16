@@ -7,6 +7,7 @@ import os
 import sys
 import ssl
 import json
+import requests
 from datetime import date, timedelta
 from urllib.request import urlopen
 
@@ -36,35 +37,38 @@ def request(ticker) -> Prediction:
             len(weights_data), len(bias_data), weights_data, bias_data, means_data, standard_deviations_data
         )
 
-    YESTERDAY = str(date.today() - timedelta(days=1))
-    
-    url = f"""
-curl --request GET \
-    --url 'https://data.alpaca.markets/v2/stocks/bars?symbols={ticker}&timeframe=1D&start=2016-01-01&end=\
-{YESTERDAY}&limit=10000&adjustment=all&feed=sip&sort=asc' \
-    --header 'APCA-API-KEY-ID: {ALPACA_KEY}' \
-    --header 'APCA-API-SECRET-KEY: {ALPACA_SECRET}' \
-    --header 'accept: application/json' \
-"""
-    url_market = f"""
-curl --request GET \
-    --url 'https://data.alpaca.markets/v2/stocks/bars?symbols=SPY&timeframe=1D&start=2016-01-01&end=\
-{YESTERDAY}&limit=10000&adjustment=all&feed=sip&sort=asc' \
-    --header 'APCA-API-KEY-ID: {ALPACA_KEY}' \
-    --header 'APCA-API-SECRET-KEY: {ALPACA_SECRET}' \
-    --header 'accept: application/json' \
-    > {saved_file}
-"""
+    YESTERDAY = str((datetime.now() - timedelta(hours=7, days=1)).date())
 
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    url = (
+        f"https://data.alpaca.markets/v2/stocks/bars?symbols={ticker}&timeframe=1D&start="
+        +
+        f"2016-01-01&end={YESTERDAY}&limit=10000&adjustment=all&feed=sip&sort=asc"
+    )
+    headers = {
+        "accept": "application/json",
+        "APCA-API-KEY-ID": ALPACA_KEY,
+        "APCA-API-SECRET-KEY": ALPACA_SECRET
+    }
+
+    url_market = (
+        f"https://data.alpaca.markets/v2/stocks/bars?symbols=SPY&timeframe=1D&start="
+        +
+        f"2016-01-01&end={YESTERDAY}&limit=10000&adjustment=all&feed=sip&sort=asc"
+    )
+    headers_market = {
+        "accept": "application/json",
+        "APCA-API-KEY-ID": ALPACA_KEY,
+        "APCA-API-SECRET-KEY": ALPACA_SECRET
+    }
     
-    response = urlopen(url, context = ctx)
-    response_market = urlopen(url_market, context = ctx)
+    response = requests.get(url, headers=headers)
+    response_market = requests.get(url_market, headers=headers_market)
+    print("response:", response.status_code, response.text)
+    print("response_market:", response_market.status_code, response_market.text)
+    assert response.status_code == 200 and response_market.status_code == 200
     
-    data = json.load(response)
-    data_market = json.load(response_market)
+    data = response.json()
+    data_market = response_market.json()
 
     assert len(data["bars"][ticker]) == len(data_market["bars"]["SPY"])
     assert data["bars"][ticker][0]["t"] == data_market["bars"]["SPY"][0]["t"]

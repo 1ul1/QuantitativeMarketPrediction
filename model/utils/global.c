@@ -22,10 +22,10 @@ int TRAINING_LOWER_BOUND = 0;
 int TRAINING_UPPER_BOUND = 0;
 
 // Only Finetuning overrides them
-double ALPHA = 0.01;
-double BETA = 0.01;
-double LAMBDA = 0.000005;
-int EPOCHS = 100;
+double ALPHA = 0.000001;
+double BETA = 0.0;
+double LAMBDA = 0.0;
+int EPOCHS = 1;
 
 int TODAY = 0;
 int LAST = 0;
