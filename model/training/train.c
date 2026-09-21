@@ -18,7 +18,7 @@ void train(
         }
     }
         
-    for (int time = TRAINING_LOWER_BOUND; time < TRAINING_UPPER_BOUND; time += 1) {
+    for (int time = 20; time < MARKET->count; time += 1) {
         untrained_features[time] = (double**)malloc(sizeof(double*) * UNTRAINED_COMPANIES->len_companies);
         for (int i = 0; i < UNTRAINED_COMPANIES->len_companies; i += 1) {
             untrained_features[time][i] = (double*)malloc(sizeof(double) * NR_FEATURES);
@@ -37,12 +37,12 @@ void train(
     repeat:
 
     // Check Error
-    double* ans1 = calloc(4, sizeof(double));
+    double* ans1 = calloc(NR_HORIZONS, sizeof(double));
     error(ans1, features, 1);
-    printf("\n");
-    for (int i = 0; i < 4; i += 1) {
-        printf("RMSE %.16f for Layer %d\n", ans1[i],i);
-    }
+    // printf("\n");
+    // for (int i = 0; i < NR_HORIZONS; i += 1) {
+    //     printf("RMSE %.16f for Layer %d\n", ans1[i],i);
+    // }
     
     for (int k = 0; k < EPOCHS; k += 1) {
 
@@ -55,7 +55,7 @@ void train(
         
         for (int time = 20; time < MARKET->count; time += 1) {
 
-            if (TRAINING_LOWER_BOUND <= time && time < TRAINING_UPPER_BOUND) {continue;}
+            if (train_rule(time)) {continue;}
             
             double* updates = (double*)calloc(WEIGHTS->len_weights + WEIGHTS->len_bias, sizeof(double));
 
@@ -90,12 +90,12 @@ void train(
         free(individual_updates);
     }
 
-    double* ans2 = calloc(4, sizeof(double));
+    double* ans2 = calloc(NR_HORIZONS, sizeof(double));
     error(ans2, features, 1);
 
     int nr = 0;
     
-    for (int i = 0; i < 4; i += 1) {
+    for (int i = 0; i < NR_HORIZONS; i += 1) {
         if (ans2[i] > ans1[i]) {
             nr += 1;
         }
@@ -105,18 +105,18 @@ void train(
     free(ans1);
     free(ans2);
     
-    if (nr == 4 || iter == 20) {
-        // True Skill on Trully unseen Companies over a unseed timeframe
+    if (nr > (int)(NR_HORIZONS * 0.7)  || iter == 10) {
+        // True Skill on Trully unseen Companies over a unseen timeframe
         print_skill(untrained_features);
         
-        if (nr == 4) {ALPHA /= 2;}
+        if (nr > (int)(NR_HORIZONS * 0.7)) {ALPHA /= 2;}
         for (int time = 20; time < MARKET->count; time += 1) {
             for (int i = 0; i < NR_COMPANIES; i += 1) {
                 free(features[time][i]);
             }
             free(features[time]);
         }
-        for (int time = TRAINING_LOWER_BOUND; time < TRAINING_UPPER_BOUND; time += 1) {
+        for (int time = 20; time < MARKET->count; time += 1) {
             for (int i = 0; i < UNTRAINED_COMPANIES->len_companies; i += 1) {
                 free(untrained_features[time][i]);
             }

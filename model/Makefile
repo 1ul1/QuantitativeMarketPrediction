@@ -1,7 +1,7 @@
 CC := gcc
 INCLUDE := -I./utils
 
-CFLAGS := -O2 -Wall -Wextra -fPIC
+CFLAGS := -O2 -Wall -Wextra -fPIC -w
 DEBUG := -O0 -g3 -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer
 
 PARALLELMACOS := -I./openmp -L./openmp -Xpreprocessor

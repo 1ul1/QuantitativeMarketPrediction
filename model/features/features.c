@@ -210,6 +210,10 @@ void calculate_features(double** features) {
     for (int time = 20; time < MARKET->count; time += 1) {
         calculate_raw_features(features[time], COMPANY, time);
         for (int f = 0; f < NR_FEATURES; f += 1) {
+            features[time][f] = max(
+                WEIGHTS->means[f] - WEIGHTS->standard_deviations[f] * CLIP,
+                min(WEIGHTS->means[f] + WEIGHTS->standard_deviations[f] * CLIP, features[time][f])
+            );
             features[time][f] = (WEIGHTS->standard_deviations[f] < 1e-12) ? 0.0
                 : (features[time][f] - WEIGHTS->means[f]) / WEIGHTS->standard_deviations[f];
         }

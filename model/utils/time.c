@@ -14,7 +14,7 @@ int is_today(const Company* company) {
     );
 }
 
-int find_bound(double t) {
+int find_index(double t) {
     for (int i = 0; i < MARKET->count; i += 1) {
         if (MARKET->samples[i].t >= t) {
             return i;

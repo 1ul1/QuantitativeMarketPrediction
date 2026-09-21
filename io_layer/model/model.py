@@ -22,7 +22,7 @@ def request(ticker) -> Prediction:
     ticker = ticker.upper()
 
     if RESET_WEIGHTS == 0:
-        weights = Weights(lib.get_nr_features() * lib.get_nr_models(), lib.get_nr_models())
+        weights = Weights(lib.get_nr_features() * lib.get_nr_horizons(), lib.get_nr_horizons())
     else:
         file = open("./model/model_weights", "r")
         weights_data, bias_data = file.readline(), file.readline()
@@ -38,7 +38,7 @@ def request(ticker) -> Prediction:
         )
 
     YESTERDAY = str((datetime.now() - timedelta(hours=7, days=1)).date())
-
+    
     url = (
         f"https://data.alpaca.markets/v2/stocks/bars?symbols={ticker}&timeframe=1D&start="
         +
@@ -63,8 +63,8 @@ def request(ticker) -> Prediction:
     
     response = requests.get(url, headers=headers)
     response_market = requests.get(url_market, headers=headers_market)
-    print("response:", response.status_code, response.text)
-    print("response_market:", response_market.status_code, response_market.text)
+    print("response:", response.status_code)
+    print("response_market:", response_market.status_code)
     assert response.status_code == 200 and response_market.status_code == 200
     
     data = response.json()
@@ -77,7 +77,7 @@ def request(ticker) -> Prediction:
     companies = Companies(1, None, company)
     market = Company("SPY", len(data_market["bars"]["SPY"]), data_market["bars"]["SPY"])
 
-    prediction: Prediction = Prediction(4)
+    prediction: Prediction = Prediction(lib.get_nr_horizons())
     lib.model(companies, market, weights, ctypes.byref(prediction))
     prediction.print()
 

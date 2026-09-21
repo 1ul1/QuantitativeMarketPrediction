@@ -169,6 +169,7 @@ class Weights(ctypes.Structure):
             
 class Day(ctypes.Structure):
     _fields_ = [
+        ("day", ctypes.c_int),
         ("bias", ctypes.c_double),
         ("sd", ctypes.c_double),
         ("expected_return", ctypes.c_double),
@@ -180,6 +181,7 @@ class Day(ctypes.Structure):
     def __init__(self, bias = 0, sd = 0, expected_return = 0, expected_price = 0, starting_price = 0, forecast_strength = 0):
         super().__init__()
 
+        self.day = 0
         self.bias = bias
         self.sd = sd
         self.expected_return = expected_return
@@ -210,7 +212,7 @@ class Prediction(ctypes.Structure):
         print(f"Today: {self.today}\n")
 
         for i in range(self.len_days):
-            print(f"Prediction Layer {i + 1}\n")
+            print(f"Prediction Layer {i + 1} for {self.days[i].day} future days")
             print(
                 f"bias {self.days[i].bias}\nsd {self.days[i].sd}\nexpected_return {self.days[i].expected_return}"
                 +
@@ -222,8 +224,8 @@ lib = ctypes.CDLL("./model/build/libmodel.dylib")
 lib.get_nr_features.argtypes = []
 lib.get_nr_features.restype = ctypes.c_int
 
-lib.get_nr_models.argtypes = []
-lib.get_nr_models.restype = ctypes.c_int
+lib.get_nr_horizons.argtypes = []
+lib.get_nr_horizons.restype = ctypes.c_int
 
 lib.model.argtypes = [Companies, Company, Weights, ctypes.POINTER(Prediction)]
 lib.model.restype = None

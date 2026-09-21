@@ -14,7 +14,7 @@ void finetune(
             
         for (int time = 20; time < LAST; time += 1) {
 
-            if (TRAINING_LOWER_BOUND <= time && time < TRAINING_UPPER_BOUND) {continue;}
+            if (train_rule(time)) {continue;}
 
             // calculate gi for each wi and save it in updates
             memset(updates, 0, sizeof(double) * (WEIGHTS->len_weights + WEIGHTS->len_bias));

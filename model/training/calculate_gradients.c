@@ -28,23 +28,11 @@ void adjust_updates(const Company* company,
 
 void process_one_company(const Company* company, double* updates, int time, double* features) {
 
-    if (LAST - time > 1) {
-        int start = 0, end = NR_FEATURES;
-        adjust_updates(company, updates, features, time, time + 1, start, end);
-    }
-
-    if (LAST - time > 5) {
-        int start = NR_FEATURES, end = NR_FEATURES * 2;
-        adjust_updates(company, updates, features, time, time + 5, start, end);
-    }
-
-    if (LAST - time > 10) {
-        int start = NR_FEATURES * 2, end = NR_FEATURES * 3;
-        adjust_updates(company, updates, features, time, time + 10, start, end);
-    }
-
-    if (LAST - time > 20) {
-        int start = NR_FEATURES * 3, end = NR_FEATURES * 4;
-        adjust_updates(company, updates, features, time, time + 20, start, end);
+    for (int i = 0; i < NR_HORIZONS; i += 1) {
+        if (horizon_check(time, HORIZONS[i], 0)) {
+            int start = NR_FEATURES * i, end = start + NR_FEATURES;
+            adjust_updates(company, updates, features, time, time + HORIZONS[i], start, end);
+        }
     }
 }
+

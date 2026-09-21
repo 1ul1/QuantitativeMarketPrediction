@@ -11,6 +11,7 @@ void populate(double* features) {
     PREDICTION->today= TODAY;
 
     for (int i = 0; i < PREDICTION->len_days; i += 1) {
+        PREDICTION->days[i].day = HORIZONS[i];
         PREDICTION->days[i].starting_price = COMPANY->samples[last].c;
         PREDICTION->days[i].expected_return = computed[i] + PREDICTION->days[i].bias;
         PREDICTION->days[i].expected_price = COMPANY->samples[last].c * exp(computed[i] + PREDICTION->days[i].bias);
@@ -32,64 +33,52 @@ void populate(double* features) {
 void populate_error_metrics(double** features) {
     double* computed = (double*)malloc(sizeof(double) * PREDICTION->len_days);
     double* expected = (double*)malloc(sizeof(double) * PREDICTION->len_days);
-
-    int range = TRAINING_UPPER_BOUND - TRAINING_LOWER_BOUND;
-
+    
+    int* range = (int*)calloc(sizeof(int), PREDICTION->len_days);
+    
     // -------------------------------------------------------------------------------------------
     // BIAS
-    for (int time = TRAINING_LOWER_BOUND; time < TRAINING_UPPER_BOUND; time += 1) {
-        predict(computed, features[time]);
-        expect(expected, time, COMPANY);
+    for (int time = 20; time < MARKET->count - 20; time += 1) {
 
-        if (time + 1 < LAST) {
-            PREDICTION->days[0].bias += expected[0] - computed[0];
-        }
-        if (time + 5 < LAST) {
-            PREDICTION->days[1].bias += expected[1] - computed[1];
-        }
-        if (time + 10 < LAST) {
-            PREDICTION->days[2].bias += expected[2] - computed[2];
-        }
-        if (time + 20 < LAST) {
-            PREDICTION->days[3].bias += expected[3] - computed[3];
+        if (train_rule(time) != 1) {continue;}
+        
+        predict(computed, features[time]);
+        expect(expected, range, time, COMPANY, 1);
+
+        for (int i = 0; i < NR_HORIZONS; i += 1) {
+            if (horizon_check(time, HORIZONS[i], 1)) {
+                PREDICTION->days[i].bias += expected[i] - computed[i];
+            }
         }
     }
 
     // BIAS average
-    PREDICTION->days[0].bias /= (range);
-    PREDICTION->days[1].bias /= (range);
-    PREDICTION->days[2].bias /= (range);
-    PREDICTION->days[3].bias /= (range);
+    for (int i = 0; i < NR_HORIZONS; i += 1) {
+        PREDICTION->days[i].bias /= (range[i]);
+    }
+
+    memset(range, 0, sizeof(int) * PREDICTION->len_days);
 
     // Standard Deviation
-    for (int time = TRAINING_LOWER_BOUND; time < TRAINING_UPPER_BOUND; time += 1) {
-        predict(computed, features[time]);
-        expect(expected, time, COMPANY);
+    for (int time = 20; time < MARKET->count - 20; time += 1) {
 
-        if (time + 1 < LAST) {
-            PREDICTION->days[0].sd += pow(expected[0] - computed[0] - PREDICTION->days[0].bias, 2);
-        }
-        if (time + 5 < LAST) {
-            PREDICTION->days[1].sd += pow(expected[1] - computed[1] - PREDICTION->days[1].bias, 2);
-        }
-        if (time + 10 < LAST) {
-            PREDICTION->days[2].sd += pow(expected[2] - computed[2] - PREDICTION->days[2].bias, 2);
-        }
-        if (time + 20 < LAST) {
-            PREDICTION->days[3].sd += pow(expected[3] - computed[3] - PREDICTION->days[3].bias, 2);
+        if (train_rule(time) != 1) {continue;}
+        
+        predict(computed, features[time]);
+        expect(expected, range, time, COMPANY, 1);
+
+        for (int i = 0; i < NR_HORIZONS; i += 1) {
+            if (horizon_check(time, HORIZONS[i], 1)) {
+                PREDICTION->days[i].sd += pow(expected[i] - computed[i] - PREDICTION->days[i].bias, 2);
+            }
         }
     }
 
-    PREDICTION->days[0].sd /= (range);
-    PREDICTION->days[1].sd /= (range);
-    PREDICTION->days[2].sd /= (range);
-    PREDICTION->days[3].sd /= (range);
-    
-    PREDICTION->days[0].sd = sqrt(PREDICTION->days[0].sd);
-    PREDICTION->days[1].sd = sqrt(PREDICTION->days[1].sd);
-    PREDICTION->days[2].sd = sqrt(PREDICTION->days[2].sd);
-    PREDICTION->days[3].sd = sqrt(PREDICTION->days[3].sd);
+    for (int i = 0; i < NR_HORIZONS; i += 1) {
+        PREDICTION->days[i].sd = sqrt(PREDICTION->days[i].sd / range[i]);
+    }
 
+    free(range);
     free(computed);
     free(expected);
 }

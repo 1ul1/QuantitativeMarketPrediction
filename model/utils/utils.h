@@ -43,6 +43,7 @@ typedef struct Weights {
 } Weights;
 
 typedef struct Day {
+    int day;
     double bias;
     double sd;
     double expected_return;
@@ -167,34 +168,37 @@ extern Companies* UNTRAINED_COMPANIES;
 
 extern int NR_COMPANIES;
 
-extern double TRAINING_LOWER_BOUND_TIMESTAMP;
-extern double TRAINING_UPPER_BOUND_TIMESTAMP;
-extern int TRAINING_LOWER_BOUND;
-extern int TRAINING_UPPER_BOUND;
-
 extern double ALPHA;
 extern double BETA;
 extern double LAMBDA;
-
 extern int EPOCHS;
+
+extern double CLIP;
 
 extern int TODAY;
 extern int LAST;
 
 extern int NR_FEATURES;
+extern int NR_HORIZONS;
+extern int HORIZONS[];
 
 extern int NR_THREADS;
 extern int get_nr_features();
-extern int get_nr_models();
+extern int get_nr_horizons();
 
 int is_today(const Company* company);
-int find_bound(double t);
+int find_index(double t);
 
 void print_weights();
+double max(double x, double y);
+double min(double x, double y);
 void predict(double* res, double* features);
-void expect(double* res, int time, Company* company);
+void expect(double* res, int* count, int time, Company* company, int toggle);
 void error(double* ans, double*** features, int toggle);
 void baseline_error(double* ans, int toggle);
 void print_skill(double*** features);
+
+int horizon_check(int time, int horizon, int toggle);
+int train_rule(int time);
 
 #endif

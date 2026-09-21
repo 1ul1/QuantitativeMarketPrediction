@@ -14,13 +14,14 @@ WEIGHTS: Weights = None
 
 def reset_weights():
     nr_features = lib.get_nr_features()
-    nr_weights: int = nr_features * 4
+    nr_horizons = lib.get_nr_horizons()
+    nr_weights: int = nr_features * nr_horizons
 
     with open("./io_layer/training/model_weights", "w") as file:
         for _ in range(nr_weights):
             file.write("0_")
         file.write("\n")
-        for _ in range(4):
+        for _ in range(nr_horizons):
             file.write("0_")
         file.write("\n")
         for _ in range(nr_features):

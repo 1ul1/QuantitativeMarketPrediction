@@ -1,22 +1,27 @@
-# The Stock Prediction Model behind [byebility.com](https://predictions.byebility.com)
+# Stock Log Return Forecasting
+### C (prediction model) & Python (IO)
+- #### The stock prediction model behind [https://byebility.com](https://predictions.byebility.com)
 
-- **Ridge regression model** for stock return forecasting written in raw C, no external ML framework or numerical library anywhere in the loop.
-- Data is collected and validated by a self-written scraper.
-- All features are centered and scaled.
+- #### Ridge regression written directly in C, no external ML framework or numerical library used anywhere in the loop.
+
+- #### Python side of repo handles only stock data scraping, parsing and preprocessing; uses *ctypes* to pass it to the C model.
 
 ## Overview
 
-- Market reference: SPY
-- 50+ features per sample
-- 4 independent predictions (1/5/10/20 day returns)
-- Universe and forecasting are restricted to companies with a complete, strictly positive history since 2016
+- Data is collected and validated by a self-written scraper.
+- Uses *openmp* to parallelize feature calculation & training.
+- 50+ features per sample.
+- All features are centered, scaled and clipped.
+- Configurable independent prediction horizons (1/5/10/20 day returns by default)
+- Universe and forecasting are restricted to companies with a complete history since 2016
 - Weights are pretrained across a company universe, then fine-tuned and calibrated per ticker before each forecast
-- A time window is excluded from all training and kept for calibration and skill measurement
+- Certain time windows are excluded from all training and kept for calibration and skill measurement
 - True out-of-sample skill is measured against a zero-return RMSE, on unseen stocks during this excluded window
+- Market reference: SPY
 
 ## Output
 
-For a given ticker and date, each of the 4 horizons returns:
+For a given ticker and date, each configured horizon returns:
 
 - **Starting price**: same for all horizons
 - **Expected return**: the fine-tuned prediction, bias corrected
@@ -25,11 +30,37 @@ For a given ticker and date, each of the 4 horizons returns:
 - **Residual standard deviation**: the spread of residuals after the bias correction, converted to dollars
 - **Forecast strength**: z-score of how unusual this forecast is relative to the ticker's own noise
 
-*Note: the latter three are computed only on the time window excluded from training & finetuning.*
+*Note: the latter three are computed only on the timeframes excluded from training & finetuning.*
+
+## Results
+
+### IC - Information Coefficient
+
+### RMSE Improvement
+Measured on tickers and held-out time windows never seen during training, so neither stage fit on this data.
+
+Performance is measured against a **zero-log-return baseline** (predicting no change) using:
+
+$$
+\text{RMSE Improvement} =
+\left(1-\frac{\text{RMSE}_{\text{model}}}{\text{RMSE}_{\text{baseline}}}\right)\times 100
+$$
+
+
+| Forecast Horizon | RMSE Improvement |
+| ---------------: | ---------------: |
+|            1 day |          -0.070% |
+|           5 days |          +0.116% |
+|          10 days |          +0.469% |
+|          20 days |          +0.846% |
+
+*Positive values indicate lower RMSE than the baseline.*
+
+The model beats the baseline from 5 days onward, with the margin growing as the horizon lengthens. All effects are small in absolute terms, but my baseline is already very hard to beat at short horizons.
 
 ## Features & Mathematics
 
-Notations: daily log return $r_s=\ln(C_s/C_{s-1})$, lookback window $L\in\{5,10,20\}$ (for my horizons), $S$ = stock, $M$ = market.
+Notations: daily log return $r_s=\ln(C_s/C_{s-1})$, lookback window $L\in\{5,10,20\}$, $S$ = stock, $M$ = market.
 
 - **Momentum**: log return
 
@@ -85,9 +116,13 @@ Notations: daily log return $r_s=\ln(C_s/C_{s-1})$, lookback window $L\in\{5,10,
 
   $$r_{S,t}-\alpha-\beta\,r_{M,t}\qquad \text{with}\qquad \alpha=\bar r_S-\beta\,\bar r_M$$
 
-- **Centering and scaling**: uses the training set mean and standard deviation:
+- **Centering, scaling and clipping**: uses the training set mean and standard deviation:
 
 $$z=\frac{x-\bar x}{\sigma_x}$$
+
+, where x is clipped if needed
+
+$$x=\max\!\Big(\bar x-c\,\sigma_x,\;\min\big(\bar x+c\,\sigma_x,\;x\big)\Big)$$
 
 
 ## Training universe
@@ -111,7 +146,14 @@ Everything else is dropped by the scraper. The same check runs before a forecast
 
 ## Model
 
-Each horizon is an independent ridge regression on log-returns. All 4 heads share the same 72 input features:
+Each horizon is an independent ridge regression on log-returns. They are defined in the C part of the code:
+```
+int NR_HORIZONS = 4;
+int HORIZONS[4] = {1, 5, 10, 20};
+```
+The Python side reads this definition and creates the appropriate *model_weights* file, while the C side trains every horizon listed.
+
+by default, for 72 features per sample:
 
 | Horizon | Look-ahead | Weight slice | Bias index |
 |---|---|---|---|
@@ -126,9 +168,9 @@ All parameters flow through both training stages below: first fit across the who
 
 ### Stage 1 | Cross-sectional pretraining
 
-Two globals denoting Unix millisecond timestamps hold a calendar window that is excluded from training & finetuning.
+Which days are trainable can be decided by different training rules (*model/utils/train_rules.c*). A rule can describe any pattern of held-out periods, such as a single continous calendar window or a 30-day holdout every 90 days. The same rules are used by pretraining, finetuning and forecasting, synchronized using Unix timestamps, so all three always agree on what the model has and hasn't seen.
 
-Training walks forward through calendar time across the *entire* company universe, skipping the excluded window:
+Training walks forward through calendar time across the *entire* company universe, skipping the held-out periods:
 
 1. At each trading day, compute the prediction error for every company in the universe and average the gradient across all of them: a full batch over the cross-section, to minimize the effects of constant Market features among all companies on that day.
 2. After a full pass, recompute RMSE on all 4 horizons. If every horizon got strictly worse, halve the learning rate, otherwise repeat.
@@ -137,7 +179,9 @@ The weights are also constantly saved statically on disk every couple of cycles 
 
 ### Centering and scaling
 
-All features are centered and scaled using each feature's row's mean and standard deviation. Without it training proved to be too slow. Below is the graph of the weights' evolution over a couple hours of training...
+All features are computed once at startup for every sample, in parallel, and reused across training cycles.
+
+They are centered, clipped and scaled using each feature's row's mean and standard deviation. Without it training proved to be too slow. Below is the graph of the weights' evolution over a couple hours of training...
 
 ![Weight heatmap](plots/weight_heatmap.png)
 
@@ -153,8 +197,8 @@ Every time a forecast is requested for a ticker, the pretrained weights are adap
 
 If the most recent bar in the data belongs to today's still-open session, it's excluded from both fine-tuning and calibration, so the model never finetunes or predicts on a price that hasn't closed yet.
 
-1. **Fine-tune** on that one company, over its whole history except the excluded window.
-2. **Calibrate** on the excluded window only. Predictions there are compared against what actually happened, giving the per-horizon bias and after removing it, the residual standard deviation. Neither stage fit on that window, so these are real out-of-sample residuals for this ticker.
+1. **Fine-tune** on that one company, over its whole history except the held-out periods.
+2. **Calibrate** on the held-out periods only. Predictions there are compared against what actually happened, giving the per-horizon bias and after removing it, the residual standard deviation. Neither stage fit on that window, so these are real out-of-sample residuals for this ticker.
 3. **Predict** from the last closed bar, apply the bias, divide by the residual standard deviation for the forecast strength.
 
 
@@ -200,10 +244,11 @@ _
 │   │   ├── finetune.c
 │   │   └── train.c
 │   └── utils ------------------- Shared code for computing predictions and errors
-│       ├── global.c
+│       ├── utils.h
 │       ├── utils.c
-│       ├── time.c
-│       └── utils.h
+│       ├── global.c
+│       ├── train_rules.c
+│       └── time.c
 └── plots
     ├── *.png
     └── stock_universe_plots

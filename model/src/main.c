@@ -16,30 +16,29 @@ void model(
     
     TODAY = is_today(COMPANY);
     LAST = TODAY ? COMPANY->count - 1: COMPANY->count;
-    
-    TRAINING_LOWER_BOUND = find_bound(TRAINING_LOWER_BOUND_TIMESTAMP);
-    TRAINING_UPPER_BOUND = find_bound(TRAINING_UPPER_BOUND_TIMESTAMP);
 
-    ALPHA = 0.00001;
-    BETA = 0.01;
-    LAMBDA = 0.000005;
-    EPOCHS = 100;
+    ALPHA = 0.0005;
+    BETA = 0.3;
+    LAMBDA = 0.0001;
+    EPOCHS = 50;
 
-    double** features = (double**)malloc(sizeof(double*) * MARKET->count);
+    double*** features = (double***)malloc(sizeof(double**));
+    *features = (double**)malloc(sizeof(double*) * MARKET->count);
     for (int time = 20; time < MARKET->count; time += 1) {
-        features[time] = (double*)malloc(sizeof(double) * NR_FEATURES);
+        (*features)[time] = (double*)malloc(sizeof(double) * NR_FEATURES);
     }
-    calculate_features(features);
+    calculate_features(*features);
 
-    finetune(*COMPANY, market, weights, features);
+    finetune(*COMPANY, market, weights, *features);
 
-    populate_error_metrics(features);
+    populate_error_metrics(*features);
 
-    populate(features[LAST - 1]);
+    populate((*features)[LAST - 1]);
 
     for (int time = 20; time < MARKET->count; time += 1) {
-        free(features[time]);
+        free((*features)[time]);
     }
+    free(*features);
     free(features);
 }
 
@@ -56,9 +55,6 @@ void training(
     UNTRAINED_COMPANIES = &untrained_companies;
     
     LAST = MARKET->count;
-    
-    TRAINING_LOWER_BOUND = find_bound(TRAINING_LOWER_BOUND_TIMESTAMP);
-    TRAINING_UPPER_BOUND = find_bound(TRAINING_UPPER_BOUND_TIMESTAMP);
     
     train(companies, market, weights);
 }

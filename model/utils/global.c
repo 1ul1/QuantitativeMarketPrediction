@@ -8,24 +8,19 @@ Companies* COMPANIES = NULL;
 Companies* UNTRAINED_COMPANIES = NULL;
 
 int NR_FEATURES = 72;
+int NR_HORIZONS = 4;
+int HORIZONS[4] = {1, 5, 10, 20};
 
 int NR_COMPANIES = 0;
 int NR_THREADS = 12;
 
-// These 2 must be UNIX TIME in milliseconds
-// Data is from 2016 till present
-// https://www.epochconverter.com/
-double TRAINING_LOWER_BOUND_TIMESTAMP = 1546300801000; // 2019-01-01
-double TRAINING_UPPER_BOUND_TIMESTAMP = 1672531201000; // 2023-01-01
-// From them i calculate the indexes
-int TRAINING_LOWER_BOUND = 0;
-int TRAINING_UPPER_BOUND = 0;
-
 // Only Finetuning overrides them
-double ALPHA = 0.000001;
-double BETA = 0.0;
-double LAMBDA = 0.0;
-int EPOCHS = 1;
+double ALPHA = 0.005;
+double BETA = 0.3;
+double LAMBDA = 0.0001;
+int EPOCHS = 10;
+
+double CLIP = 6.0;
 
 int TODAY = 0;
 int LAST = 0;
@@ -34,7 +29,7 @@ int get_nr_features() {
     return NR_FEATURES;
 }
 
-int get_nr_models() {
-    return 4;
+int get_nr_horizons() {
+    return NR_HORIZONS;
 }
 
