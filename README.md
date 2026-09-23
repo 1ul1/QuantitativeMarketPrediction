@@ -1,6 +1,7 @@
 # Stock Log Return Forecasting
 
-Built and served end to end on my own infrastructure and domain | nginx, Python, Flutter.<br>[![Website](https://img.shields.io/badge/website-byebility.com-blue)](https://byebility.com)
+Built and served end to end on my own infrastructure and domain | nginx, Python, Flutter.<br>
+[![Website](https://img.shields.io/badge/Website-ByeBility.com-aqua?labelColor=)](https://byebility.com)
 
 ### C (prediction model) & Python (IO)
 
