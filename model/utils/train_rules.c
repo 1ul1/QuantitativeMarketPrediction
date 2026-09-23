@@ -43,7 +43,7 @@ int walk_forward_folds(int time) {
     if (!TRAINING_INDEX) {TRAINING_INDEX = find_index(TRAINING_TIMESTAMP);}
 
     int relative_time = time - TRAINING_INDEX;
-    return relative_time < 100 ? 0 : relative_time % 170 < 40;
+    return relative_time < 100 ? 0 : relative_time % 170 < 30;
 }
 
 // Choose strategy from the above here

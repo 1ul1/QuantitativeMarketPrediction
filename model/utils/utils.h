@@ -193,9 +193,10 @@ void print_weights();
 double max(double x, double y);
 double min(double x, double y);
 void predict(double* res, double* features);
-void expect(double* res, int* count, int time, Company* company, int toggle);
+void expect(double* res, int time, Company* company, int toggle);
 void error(double* ans, double*** features, int toggle);
 void baseline_error(double* ans, int toggle);
+void ts_and_ic(double* ans1, double* ans2, double*** features);
 void print_skill(double*** features);
 
 int horizon_check(int time, int horizon, int toggle);

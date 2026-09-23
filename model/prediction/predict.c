@@ -34,7 +34,7 @@ void populate_error_metrics(double** features) {
     double* computed = (double*)malloc(sizeof(double) * PREDICTION->len_days);
     double* expected = (double*)malloc(sizeof(double) * PREDICTION->len_days);
     
-    int* range = (int*)calloc(sizeof(int), PREDICTION->len_days);
+    int* range = (int*)calloc(PREDICTION->len_days, sizeof(int));
     
     // -------------------------------------------------------------------------------------------
     // BIAS
@@ -43,11 +43,12 @@ void populate_error_metrics(double** features) {
         if (train_rule(time) != 1) {continue;}
         
         predict(computed, features[time]);
-        expect(expected, range, time, COMPANY, 1);
+        expect(expected, time, COMPANY, 1);
 
         for (int i = 0; i < NR_HORIZONS; i += 1) {
             if (horizon_check(time, HORIZONS[i], 1)) {
                 PREDICTION->days[i].bias += expected[i] - computed[i];
+                range[i] += 1;
             }
         }
     }
@@ -57,15 +58,13 @@ void populate_error_metrics(double** features) {
         PREDICTION->days[i].bias /= (range[i]);
     }
 
-    memset(range, 0, sizeof(int) * PREDICTION->len_days);
-
     // Standard Deviation
     for (int time = 20; time < MARKET->count - 20; time += 1) {
 
         if (train_rule(time) != 1) {continue;}
         
         predict(computed, features[time]);
-        expect(expected, range, time, COMPANY, 1);
+        expect(expected, time, COMPANY, 1);
 
         for (int i = 0; i < NR_HORIZONS; i += 1) {
             if (horizon_check(time, HORIZONS[i], 1)) {

@@ -1,6 +1,8 @@
 # Stock Log Return Forecasting
+
+Built and served end to end on my own infrastructure and domain | nginx, Python, Flutter.<br>[![Website](https://img.shields.io/badge/website-byebility.com-blue)](https://byebility.com)
+
 ### C (prediction model) & Python (IO)
-- #### The stock prediction model behind [https://byebility.com](https://predictions.byebility.com)
 
 - #### Ridge regression written directly in C, no external ML framework or numerical library used anywhere in the loop.
 
@@ -8,15 +10,15 @@
 
 ## Overview
 
-- Data is collected and validated by a self-written scraper.
-- Uses *openmp* to parallelize feature calculation & training.
-- 50+ features per sample.
-- All features are centered, scaled and clipped.
+- Data is collected and validated by a self-written scraper
+- *openmp* is used to parallelize feature calculation & training
+- All features are centered, scaled and clipped
 - Configurable independent prediction horizons (1/5/10/20 day returns by default)
 - Universe and forecasting are restricted to companies with a complete history since 2016
 - Weights are pretrained across a company universe, then fine-tuned and calibrated per ticker before each forecast
 - Certain time windows are excluded from all training and kept for calibration and skill measurement
 - True out-of-sample skill is measured against a zero-return RMSE, on unseen stocks during this excluded window
+- 50+ features per sample
 - Market reference: SPY
 
 ## Output
@@ -32,31 +34,68 @@ For a given ticker and date, each configured horizon returns:
 
 *Note: the latter three are computed only on the timeframes excluded from training & finetuning.*
 
-## Results
+## Results <br> RMSE + IC
+
+All metrics below are computed on companies and time windows never seen during training.
+
+<p align="center">
+  <img src="./plots/model_results.png" alt="Model Results" width="600">
+  <br>
+  <sub>RMSE improvement relative to a 0 log return baseline</sub>
+  <br>
+  <sub><em>TS</em> = time-series IC &nbsp;|&nbsp; <em>CS</em> = cross-sectional IC</sub>
+</p>
+
+*Observations*: features look back at most 20 days, and the results follow that window. All three metrics peak around 10 to 20 days. Close future is mostly noise and beyond a month, that same history carries too little relevant information. In between is where it fits.
+
+*Notations*: $\hat r_{i,t}$ is the predicted log return for company $i$ at day $t$, and $r_{i,t}=\ln\big(C_{i,t+h}/C_{i,t}\big)$ is the realized one.
+
+### RMSE Improvement
+
+Performance is measured against a **zero log return baseline** (predicting no change):
+
+$$
+\text{RMSE Improvement}=\left(1-\frac{\text{RMSE}_{\text{model}}}{\text{RMSE}_{\text{baseline}}}\right)\times 100
+$$
 
 ### IC - Information Coefficient
 
-### RMSE Improvement
-Measured on tickers and held-out time windows never seen during training, so neither stage fit on this data.
+1) #### ***TS - time-series IC*** 
 
-Performance is measured against a **zero-log-return baseline** (predicting no change) using:
+Per company, across time: does this company's realized return move with what the model predicted for it? 
+
+*Pearson correlation* over all valid days of one company, then averaged across companies:
 
 $$
-\text{RMSE Improvement} =
-\left(1-\frac{\text{RMSE}_{\text{model}}}{\text{RMSE}_{\text{baseline}}}\right)\times 100
+TS_i=\frac{\text{cov}\big(\hat r_{i,t},r_{i,t}\big)}{\sigma_{\hat r}\sigma_r}
 $$
 
+2) #### ***CS - cross-sectional IC***
 
-| Forecast Horizon | RMSE Improvement |
-| ---------------: | ---------------: |
-|            1 day |          -0.070% |
-|           5 days |          +0.116% |
-|          10 days |          +0.469% |
-|          20 days |          +0.846% |
+Per day, across companies: on a given day, does the model rank companies correctly against each other?
+
+*Pearson correlation* over all companies on one day, then averaged across days:
+
+$$
+CS_t=\frac{\text{cov}\big(\hat r_{i,t},r_{i,t}\big)}{\sigma_{\hat r}\sigma_r}
+$$
+
+| Horizon |    RMSE |      TS |      CS |
+| ------: | ------: | ------: | ------: |
+|   1 day | -0.179% | +0.0227 | +0.0024 |
+|  5 days | +0.129% | +0.0825 | +0.0188 |
+| 10 days | +0.654% | +0.1522 | +0.0245 |
+| 20 days | +0.925% | +0.1553 | +0.0209 |
+| 30 days | +0.897% | +0.0807 | +0.0185 |
+| 50 days | +0.706% | +0.0723 | -0.0013 |
+| 75 days | +0.240% | -0.0269 | -0.0654 |
 
 *Positive values indicate lower RMSE than the baseline.*
 
-The model beats the baseline from 5 days onward, with the margin growing as the horizon lengthens. All effects are small in absolute terms, but my baseline is already very hard to beat at short horizons.
+*Observations*:
+- Regarding RMSE, all effects are small in absolute terms, but my baseline is already very hard to beat at short horizons.
+- TS runs several times larger than CS at every horizon. TS keeps the market-wide component, since predictions and realized returns trend together across the whole universe when the market moves, while IC removes it by default. The gap between the two columns is exactly that market component.
+*Positive values indicate lower RMSE than the baseline.*
 
 ## Features & Mathematics
 
