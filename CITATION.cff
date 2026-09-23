@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Robu"
+  given-names: "Tudor-Sebastian"
+title: "Multi-Horizon Stock Log Return Ridge Regression Model Written in Raw C"
+version: 1.0.0
+doi: 10.5281/zenodo.22927824
+date-released: 2026-09-24
+url: "https://github.com/1ul1/QuantitativeMarketPrediction"

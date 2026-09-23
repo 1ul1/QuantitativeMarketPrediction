@@ -1,25 +1,29 @@
-# Stock Log Return Forecasting
 
-Built and served end to end on my own infrastructure and domain | nginx, Python, Flutter.<br>[![Website](https://img.shields.io/badge/website-byebility.com-blue)](https://byebility.com)
 
-### C (prediction model) & Python (IO)
+# [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22927824.svg)](https://doi.org/10.5281/zenodo.22927824) <br> Multi-Horizon Stock Log Return Forecasting<br> in Raw C
 
-- #### Ridge regression written directly in C, no external ML framework or numerical library used anywhere in the loop.
+Built and self-hosted a website around the ML model | nginx, Python, Flutter.<br>
+[![Website](https://img.shields.io/badge/Website-%E2%80%8B%20ByeBility.com-222?labelColor=ddd)](https://byebility.com)
 
-- #### Python side of repo handles only stock data scraping, parsing and preprocessing; uses *ctypes* to pass it to the C model.
+<p align="center">
+  <img src="plots/website/output.gif" alt="Demo" width="600">
+</p>
+
+### C (prediction model) & Python (I/O)
+
+- #### Ridge regression written directly in raw C, no external ML framework or numerical library used anywhere in the loop.
+
+- #### Python side of repo handles only stock data scraping, parsing and preprocessing, and uses *ctypes* to pass it to the C model.
 
 ## Overview
 
 - Data is collected and validated by a self-written scraper
-- *openmp* is used to parallelize feature calculation & training
+- *openmp* is used to parallelize feature computation & training
 - All features are centered, scaled and clipped
-- Configurable independent prediction horizons (1/5/10/20 day returns by default)
+- Configurable independent prediction horizons
 - Universe and forecasting are restricted to companies with a complete history since 2016
 - Weights are pretrained across a company universe, then fine-tuned and calibrated per ticker before each forecast
 - Certain time windows are excluded from all training and kept for calibration and skill measurement
-- True out-of-sample skill is measured against a zero-return RMSE, on unseen stocks during this excluded window
-- 50+ features per sample
-- Market reference: SPY
 
 ## Output
 
@@ -40,6 +44,8 @@ All metrics below are computed on companies and time windows never seen during t
 
 <p align="center">
   <img src="./plots/model_results.png" alt="Model Results" width="600">
+  <br>
+  <sub>Each series is devided by its own largest deviation.</sub>
   <br>
   <sub>RMSE improvement relative to a 0 log return baseline</sub>
   <br>
@@ -95,7 +101,7 @@ $$
 *Observations*:
 - Regarding RMSE, all effects are small in absolute terms, but my baseline is already very hard to beat at short horizons.
 - TS runs several times larger than CS at every horizon. TS keeps the market-wide component, since predictions and realized returns trend together across the whole universe when the market moves, while IC removes it by default. The gap between the two columns is exactly that market component.
-*Positive values indicate lower RMSE than the baseline.*
+
 
 ## Features & Mathematics
 
@@ -161,7 +167,7 @@ $$z=\frac{x-\bar x}{\sigma_x}$$
 
 , where x is clipped if needed
 
-$$x=\max\!\Big(\bar x-c\,\sigma_x,\;\min\big(\bar x+c\,\sigma_x,\;x\big)\Big)$$
+$$x=\max\!\Big(\bar x-c\sigma_x,\min\big(\bar x+c\sigma_x,x\big)\Big)$$
 
 
 ## Training universe
@@ -220,13 +226,17 @@ The weights are also constantly saved statically on disk every couple of cycles 
 
 All features are computed once at startup for every sample, in parallel, and reused across training cycles.
 
-They are centered, clipped and scaled using each feature's row's mean and standard deviation. Without it training proved to be too slow. Below is the graph of the weights' evolution over a couple hours of training...
+They are centered, clipped and scaled using each feature's row's mean and standard deviation.
+
+Multilinearity between features is likely, due to most of them being logs derived from the same kind of data, therefore Ridge Regression is needed. The lambda penalty penalizes equally, so standardization is needed.
+
+Even though the features were chosen to be around the same scale, without centering and scaling, they drift apart dramatically, illustrated by the graphs below:
 
 ![Weight heatmap](plots/weight_heatmap.png)
 
 ### VS
 
-Current IQR
+Scaled & centered features' IQR
 
 ![Weight IQR](plots/iqr_indexed.png)
 
