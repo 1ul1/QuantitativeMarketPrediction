@@ -20,8 +20,8 @@ int horizon_check(int time, int horizon, int toggle) {
 // These 2 must be UNIX TIME in milliseconds
 // Data is from 2016 till present
 // https://www.epochconverter.com/
-double TRAINING_LOWER_BOUND_TIMESTAMP = 1704067201000; //2024-01-01
-double TRAINING_UPPER_BOUND_TIMESTAMP = 1735689601000; //2025-01-01
+double TRAINING_LOWER_BOUND_TIMESTAMP = 1735689601000; //2025-01-01
+double TRAINING_UPPER_BOUND_TIMESTAMP = 1790529381000; //today when i tested
 // From them calculate the indexes
 int TRAINING_LOWER_BOUND = 0;
 int TRAINING_UPPER_BOUND = 0;

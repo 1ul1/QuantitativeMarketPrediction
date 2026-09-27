@@ -20,5 +20,5 @@ int find_index(double t) {
             return i;
         }
     }
-    return -1;
+    return MARKET->count;
 }

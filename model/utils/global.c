@@ -9,17 +9,17 @@ Companies* UNTRAINED_COMPANIES = NULL;
 
 int NR_FEATURES = 72;
 
-int NR_HORIZONS = 4;
-int HORIZONS[4] = {1, 5, 10, 20};
+int NR_HORIZONS = 15;
+int HORIZONS[15] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30, 50, 75};
 
 int NR_COMPANIES = 0;
 int NR_THREADS = 12;
 
 // Only Finetuning overrides them
-double ALPHA = 0.001;
-double BETA = 0.2;
-double LAMBDA = 0.00001;
-int EPOCHS = 10;
+double ALPHA = 0.0001;
+double BETA = 0.5;
+double LAMBDA = 0.00000000001;
+int EPOCHS = 1;
 
 double CLIP = 10;
 
