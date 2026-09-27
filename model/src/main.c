@@ -17,10 +17,10 @@ void model(
     TODAY = is_today(COMPANY);
     LAST = TODAY ? COMPANY->count - 1: COMPANY->count;
 
-    ALPHA = 0.0005;
+    ALPHA = 0.00005;
     BETA = 0.3;
-    LAMBDA = 0.0001;
-    EPOCHS = 50;
+    LAMBDA = 0.00000000001;
+    EPOCHS = 0;
 
     double*** features = (double***)malloc(sizeof(double**));
     *features = (double**)malloc(sizeof(double*) * MARKET->count);

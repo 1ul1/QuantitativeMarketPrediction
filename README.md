@@ -52,7 +52,7 @@ For a given ticker and date, each configured horizon returns:
   <sub><em>TS</em> = time-series IC &nbsp;|&nbsp; <em>CS</em> = cross-sectional IC</sub>
 </p>
 
-The model is trained only on data from 2016 through 2024 on ~900 companies, then scored from 2025 till today on ~100 companies that were held-out during training.
+The model is trained only on data from 2016 through 2024, inclusive, on ~900 companies, then scored from 2025 till today on ~100 companies that were held-out during training.
 
 Therefore, all metrics are computed on companies and time windows never seen during training with no lookahead, simulating real live forecasting conditions.
 
@@ -98,7 +98,7 @@ $$
 CS_t=\frac{\text{cov}\big(\hat r_{i,t},r_{i,t}\big)}{\sigma_{\hat r}\sigma_r}
 $$
 
-| Horizon |    RMSE |      TS |      CS |
+| Horizon |    RMSE |   TS IC |   CS IC |
 | ------: | ------: | ------: | ------: |
 |   1 day | +0.019% | +0.0265 | +0.0123 |
 |  2 days | +0.030% | +0.0422 | +0.0135 |
@@ -120,7 +120,7 @@ $$
 
 ***Observations** for the time window of interest 1-20 days*:
 - All effects are small in absolute terms, but my baseline is already very hard to beat.
-- An earlier run, trained on 2016–2023 (included) and scored from 2024 til present, showed a noticeably weaker signal (CS IC peaked at +0.014 at 4 days and faded by 10 days). Either the model benefits that much from training on the most recent year, or 2024 was an unusually hard year for it.
+- An earlier run, trained on 2016–2023 (inclusive) and scored from 2024 til present, showed a noticeably weaker signal (CS IC peaked at +0.014 at 4 days and faded by 10 days). Either the model benefits that much from training on the most recent year, or 2024 was an unusually hard year for it.
 - RMSE improvement peaks at 4 days (+0.243%) and stays near +0.2% until day 9. Cross-sectional IC is positive at every horizon.
 - The time-series IC runs several times larger than the cross-sectional IC at every horizon. The time-series keeps the market component, while cross-sectional IC removes it by default. The gap between the two is exactly that market component.
 
