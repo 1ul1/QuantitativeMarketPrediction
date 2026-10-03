@@ -200,6 +200,7 @@ void ts_and_ic(double* ans1, double* ans2, double*** features);
 void print_skill(double*** features);
 
 int horizon_check(int time, int horizon, int toggle);
+extern double SINCE_TIMESTAMP;
 int train_rule(int time);
 
 #endif

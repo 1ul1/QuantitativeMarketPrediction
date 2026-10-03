@@ -17,10 +17,10 @@ void model(
     TODAY = is_today(COMPANY);
     LAST = TODAY ? COMPANY->count - 1: COMPANY->count;
 
-    ALPHA = 0.00005;
+    ALPHA = 0.000075;
     BETA = 0.3;
     LAMBDA = 0.00000000001;
-    EPOCHS = 0;
+    EPOCHS = 1;
 
     double*** features = (double***)malloc(sizeof(double**));
     *features = (double**)malloc(sizeof(double*) * MARKET->count);
@@ -28,6 +28,14 @@ void model(
         (*features)[time] = (double*)malloc(sizeof(double) * NR_FEATURES);
     }
     calculate_features(*features);
+
+    SINCE_TIMESTAMP = (
+        COMPANY->samples[COMPANY->count - 1].t
+        -
+        HORIZONS[NR_HORIZONS - 1] * 2.0
+        *
+        24 * 3600 * 1000
+    );
 
     finetune(*COMPANY, market, weights, *features);
 

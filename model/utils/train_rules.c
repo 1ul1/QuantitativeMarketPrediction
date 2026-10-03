@@ -34,7 +34,15 @@ int one_timeframe(int time) {
     }
     return (TRAINING_LOWER_BOUND <= time && time < TRAINING_UPPER_BOUND) ? 1 : 0;
 }
-
+// Walk forward frame_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-
+double SINCE_TIMESTAMP = 1735689601000; //2025-01-01
+int SINCE_BOUND = 0;
+int walk_forward(int time) {
+    if (!SINCE_BOUND) {
+        SINCE_BOUND = find_index(SINCE_TIMESTAMP);
+    }
+    return (SINCE_BOUND <= time) ? 1 : 0;
+}
 // Walk forward folds_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-
 double TRAINING_TIMESTAMP = 1514764801000; //2018-01-01
 int TRAINING_INDEX = 0;
@@ -48,5 +56,5 @@ int walk_forward_folds(int time) {
 
 // Choose strategy from the above here
 int train_rule(int time) {
-    return one_timeframe(time);
+    return walk_forward(time);
 }
