@@ -221,6 +221,9 @@ class Prediction(ctypes.Structure):
 
 lib = ctypes.CDLL("./model/build/libmodel.dylib")
 
+lib.get_ALPHA.argtypes = []
+lib.get_ALPHA.restype = ctypes.c_double
+
 lib.get_nr_features.argtypes = []
 lib.get_nr_features.restype = ctypes.c_int
 
@@ -232,3 +235,4 @@ lib.model.restype = None
 
 lib.training.argtypes = [Companies, Companies, Company, Weights]
 lib.training.restype = None
+

@@ -17,7 +17,7 @@ void populate(double* features) {
         PREDICTION->days[i].expected_price = COMPANY->samples[last].c * exp(computed[i] + PREDICTION->days[i].bias);
         PREDICTION->days[i].forecast_strength = (
             (computed[i] + PREDICTION->days[i].bias) /  PREDICTION->days[i].sd
-        );
+        ) * 100;
         // Conversion to $
         PREDICTION->days[i].sd = COMPANY->samples[last].c / 2 * (
                 exp(PREDICTION->days[i].expected_return + PREDICTION->days[i].sd)
@@ -25,6 +25,8 @@ void populate(double* features) {
                 exp(PREDICTION->days[i].expected_return - PREDICTION->days[i].sd)
         );
         PREDICTION->days[i].bias = COMPANY->samples[last].c * (exp(PREDICTION->days[i].bias) - 1);
+        // Conversion return
+        PREDICTION->days[i].expected_return = exp(PREDICTION->days[i].expected_return) * 100;
     }
     
     free(computed);

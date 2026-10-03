@@ -183,6 +183,7 @@ extern int NR_HORIZONS;
 extern int HORIZONS[];
 
 extern int NR_THREADS;
+extern double get_ALPHA();
 extern int get_nr_features();
 extern int get_nr_horizons();
 
@@ -201,6 +202,7 @@ void print_skill(double*** features);
 
 int horizon_check(int time, int horizon, int toggle);
 extern double SINCE_TIMESTAMP;
+extern int SINCE_BOUND;
 int train_rule(int time);
 
 #endif

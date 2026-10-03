@@ -17,9 +17,9 @@ void model(
     TODAY = is_today(COMPANY);
     LAST = TODAY ? COMPANY->count - 1: COMPANY->count;
 
-    ALPHA = 0.000075;
-    BETA = 0.3;
-    LAMBDA = 0.00000000001;
+    ALPHA /= 2.5;
+    BETA = 0.01;
+    LAMBDA = 0.0000001;
     EPOCHS = 1;
 
     double*** features = (double***)malloc(sizeof(double**));
@@ -32,7 +32,8 @@ void model(
     SINCE_TIMESTAMP = (
         COMPANY->samples[COMPANY->count - 1].t
         -
-        HORIZONS[NR_HORIZONS - 1] * 2.0
+        1.0 * 
+        (HORIZONS[NR_HORIZONS - 1] + 50)
         *
         24 * 3600 * 1000
     );
