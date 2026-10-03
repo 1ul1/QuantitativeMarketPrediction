@@ -160,7 +160,7 @@ void ts_and_ic(double* ans1, double* ans2, double*** features) {
     for (int idx = 0; idx < NR_HORIZONS; idx += 1) {
         if (range[idx] == 0) {
             printf("wtf");
-            exit(-2);
+            return;
         }
     }
 

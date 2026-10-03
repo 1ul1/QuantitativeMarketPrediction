@@ -36,6 +36,8 @@ void train(
 
     repeat:
 
+    printf("Start Training -_-\n");
+
     // Check Error
     double* ans1 = calloc(NR_HORIZONS, sizeof(double));
     error(ans1, features, 1);
@@ -105,11 +107,11 @@ void train(
     free(ans1);
     free(ans2);
     
-    if (nr > (int)(NR_HORIZONS * 0.7)  || iter == 10) {
+    if (1 || (nr > (int)(NR_HORIZONS * 0.5)  || iter == 10)) {
         // True Skill on Trully unseen Companies over a unseen timeframe
         print_skill(untrained_features);
         
-        if (nr > (int)(NR_HORIZONS * 0.7)) {ALPHA /= 2;}
+        if (nr > (int)(NR_HORIZONS * 0.5)) {ALPHA /= 2;}
         for (int time = 20; time < MARKET->count; time += 1) {
             for (int i = 0; i < NR_COMPANIES; i += 1) {
                 free(features[time][i]);
