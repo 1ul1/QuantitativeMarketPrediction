@@ -7,6 +7,8 @@ Built and self-hosted a website around the ML model | nginx, Python, Flutter.<br
 
 <p align="center">
   <img src="plots/website/output.gif" alt="Demo" width="600">
+  <br>
+  <a href="https://byebility.com">ByeBility.com</a>
 </p>
 
 ### C (prediction model) & Python (I/O)
@@ -34,9 +36,9 @@ For a given ticker and date, each configured horizon returns:
 - **Expected price**: starting price × exp(expected return)
 - **Residual bias**: the ticker's average historical miss for this horizon, converted to dollars
 - **Residual standard deviation**: the spread of residuals after the bias correction, converted to dollars
-- **Forecast strength**: z-score of how unusual this forecast is relative to the ticker's own noise
+- **Forecast strength**: How strong this forecast is relative to the model’s typical error for this ticker, expressed as a percentage of residual sd.
 
-*Note: the latter three are computed only on the timeframes excluded from training & finetuning.*
+*Note: the standard deviation is computed only on the timeframes excluded from training & finetuning.*
 
 ## Results <br> RMSE + IC
 
@@ -276,6 +278,7 @@ If the most recent bar in the data belongs to today's still-open session, it's e
 ### Project Layout
 
 ```
+QuantitativeMarketPrediction
 _
 ├── LICENSE
 ├── README.md
@@ -291,7 +294,7 @@ _
 │       ├── model_weights
 │       ├── scrape_data.py
 │       ├── train.py
-│       ├── market
+│       ├── market -------------- Training universes directories
 │       │   └── empty
 │       ├── stocks
 │       │   └── empty
@@ -320,8 +323,9 @@ _
 │       ├── global.c
 │       ├── train_rules.c
 │       └── time.c
-└── plots
-    ├── *.png
-    └── stock_universe_plots
-        └─ *.png
+├── plots
+│   ├── *.png
+│   └── stock_universe_plots
+│       └─ *.png
+│
 ```

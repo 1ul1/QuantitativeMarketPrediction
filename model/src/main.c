@@ -17,9 +17,9 @@ void model(
     TODAY = is_today(COMPANY);
     LAST = TODAY ? COMPANY->count - 1: COMPANY->count;
 
-    ALPHA /= 2.5;
+    ALPHA = 0.001;
     BETA = 0.01;
-    LAMBDA = 0.0000001;
+    LAMBDA = 0.000001;
     EPOCHS = 1;
 
     double*** features = (double***)malloc(sizeof(double**));
@@ -33,10 +33,11 @@ void model(
         COMPANY->samples[COMPANY->count - 1].t
         -
         1.0 * 
-        (HORIZONS[NR_HORIZONS - 1] + 50)
+        (HORIZONS[NR_HORIZONS - 1] + 365)
         *
         24 * 3600 * 1000
     );
+    SINCE_BOUND = 0;
 
     finetune(*COMPANY, market, weights, *features);
 

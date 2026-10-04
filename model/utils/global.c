@@ -9,8 +9,8 @@ Companies* UNTRAINED_COMPANIES = NULL;
 
 int NR_FEATURES = 72;
 
-int NR_HORIZONS = 5;
-int HORIZONS[5] = {1, 3, 5, 10, 20};
+int NR_HORIZONS = 7;
+int HORIZONS[7] = {1, 3, 5, 10, 15, 20, 25};
 
 int NR_COMPANIES = 0;
 int NR_THREADS = 12;

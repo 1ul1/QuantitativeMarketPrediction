@@ -26,7 +26,7 @@ void populate(double* features) {
         );
         PREDICTION->days[i].bias = COMPANY->samples[last].c * (exp(PREDICTION->days[i].bias) - 1);
         // Conversion return
-        PREDICTION->days[i].expected_return = exp(PREDICTION->days[i].expected_return) * 100;
+        PREDICTION->days[i].expected_return = (exp(PREDICTION->days[i].expected_return) - 1) * 100;
     }
     
     free(computed);
@@ -40,15 +40,15 @@ void populate_error_metrics(double** features) {
     
     // -------------------------------------------------------------------------------------------
     // BIAS
-    for (int time = 20; time < MARKET->count - 20; time += 1) {
+    for (int time = 20; time < MARKET->count; time += 1) {
 
-        if (train_rule(time) != 1) {continue;}
+        if (train_rule(time) == 1) {continue;}
         
         predict(computed, features[time]);
-        expect(expected, time, COMPANY, 1);
+        expect(expected, time, COMPANY, 0);
 
         for (int i = 0; i < NR_HORIZONS; i += 1) {
-            if (horizon_check(time, HORIZONS[i], 1)) {
+            if (horizon_check(time, HORIZONS[i], 0)) {
                 PREDICTION->days[i].bias += expected[i] - computed[i];
                 range[i] += 1;
             }
@@ -60,8 +60,10 @@ void populate_error_metrics(double** features) {
         PREDICTION->days[i].bias /= (range[i]);
     }
 
+    memset(range, 0, sizeof(int) * PREDICTION->len_days);
+
     // Standard Deviation
-    for (int time = 20; time < MARKET->count - 20; time += 1) {
+    for (int time = 20; time < MARKET->count; time += 1) {
 
         if (train_rule(time) != 1) {continue;}
         
@@ -71,6 +73,7 @@ void populate_error_metrics(double** features) {
         for (int i = 0; i < NR_HORIZONS; i += 1) {
             if (horizon_check(time, HORIZONS[i], 1)) {
                 PREDICTION->days[i].sd += pow(expected[i] - computed[i] - PREDICTION->days[i].bias, 2);
+                range[i] += 1;
             }
         }
     }
