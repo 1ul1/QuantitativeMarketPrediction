@@ -28,6 +28,11 @@ debug: clean
 clean:
 	rm -f $(OUT)
 
+all_serial: clean build_serial
+
+build_serial: 
+	$(CC) $(CFLAGS) $(INCLUDE) -dynamiclib $(SRCS) -o $(OUT)
+
 all_linux: clean_linux build_linux
 
 build_linux: $(OUT_LINUX)
