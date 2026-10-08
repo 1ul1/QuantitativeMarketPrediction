@@ -193,7 +193,7 @@ $$z=\frac{x-\bar x}{\sigma_x}$$
 
 $$x=\max\!\Big(\bar x-c\sigma_x,\min\big(\bar x+c\sigma_x,x\big)\Big)$$
 
-## Raw Feature Correlations
+## Raw Features' Correlations
 
 These heatmaps show how the 72 raw features correlate with future stock log returns across 1-25 day horizons, computed over 10 years of daily data using 896 companies.
 
@@ -209,11 +209,7 @@ These heatmaps show how the 72 raw features correlate with future stock log retu
   <img src="plots/mean_time_series_pearson.png" alt="Demo">
 </p>
 
-Detailed look
-
-<p align="center">
-  <img src="plots/features.png" alt="Demo">
-</p>
+<a href="plots/features.png"><u>Detailed results here.</u></a>
 
 ## Training universe
 
@@ -295,6 +291,60 @@ If the most recent bar in the data belongs to today's still-open session, it's e
 2. **Calibrate** on the held-out periods only. Predictions there are compared against what actually happened, giving the per-horizon bias and after removing it, the residual standard deviation. Neither stage fit on that window, so these are real out-of-sample residuals for this ticker.
 3. **Predict** from the last closed bar, apply the bias, divide by the residual standard deviation for the forecast strength.
 
+## How to run
+
+### Requirements: 
+
+- Python I/O side uses *requests* to pull live stock data
+    
+      pip install requests
+  
+- MacOS uses Clang instead of standard GCC, therefore the Makefile requires OpenMP support for building the parallelized version on MacOS, otherwise juse use *make all_serial*. I copied the OpenMP binaries from a Conda env, therefore I made the Makefile to expect actual binaries, using *homebrew* or *macports* will not work without modifying it.
+
+- The Python side needs [Alpaca](https://docs.alpaca.markets/us/reference/stockbars) credentials to pull data, accesible through the environment as ALPACA_KEY & ALPACA_SECRET.
+      
+      ALPACA_KEY = os.environ.get("ALPACA_KEY")
+      ALPACA_SECRET = os.environ.get("ALPACA_SECRET")
+
+### Full Setup
+
+      git clone https://github.com/1ul1/QuantitativeMarketPrediction
+      cd QuantitativeMarketPrediction
+      mkdir ./io_layer/training/market; mkdir ./io_layer/training/stocks; mkdir ./io_layer/training/untrained_stocks
+      rm -rf ./io_layer/training/market/*; rm -rf ./io_layer/training/stocks/*; rm -rf ./io_layer/training/untrained_stocks/*
+      python3 -m io_layer.my_main get_data (download training universe)
+      cd model; make; cd ..; python3 -m io_layer.my_main train
+      cp io_layer/training/model_weights ./model/
+      python3 -m io_layer.my_main AAPL
+
+If everything is set up correctly, a forecast for Apple's stock should be displayed.
+
+*Note*: change make to make all_linux or make all_serial if needed. Implicit *all* rule is for Macos, linked against local OpenMP binaries.
+
+### Predict a ticker
+      python3 -m io_layer.my_main {ticker} 
+                                  e.g python3 -m io_layer.my_main AAPL
+                                  (you can use any US equity ticker)
+### Train
+
+      python3 -m io_layer.my_main train
+
+,when done
+
+      cp io_layer/training/model_weights ./model/
+
+- To get a training universe to train on:
+
+      mkdir ./io_layer/training/market; mkdir ./io_layer/training/stocks; mkdir ./io_layer/training/untrained_stocks
+      rm -rf ./io_layer/training/market/*; rm -rf ./io_layer/training/stocks/*; rm -rf ./io_layer/training/untrained_stocks/*
+      python3 -m io_layer.my_main get_data
+
+### Replicate my results (RMSE + IC)
+
+The Python side *get_data* module randomly selects 1 in 10 pulled stocks to be held-out during training and used for verification only. Therefore, to replicate my results you need to force these 3 dirs at *./io_layer/training/* to match exactly this structure:
+[ls ./io_layer/training/market](./plots/replicate_results/market) & [ls ./io_layer/training/stocks](./plots/replicate_results/stocks) & [ls ./io_layer/training/untrained_stocks](./plots/replicate_results/untrained_stocks).
+
+Additionally, the python scraper at [./io_layer/training/scrape_data.py](./io_layer/training/scrape_data.py), must only pull data from 2016-01-01 to 2026-09-14, so hardcode *YESTERDAY* to be 2026-09-14.
 
 ### Project Layout
 
