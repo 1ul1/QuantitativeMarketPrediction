@@ -193,6 +193,27 @@ $$z=\frac{x-\bar x}{\sigma_x}$$
 
 $$x=\max\!\Big(\bar x-c\sigma_x,\min\big(\bar x+c\sigma_x,x\big)\Big)$$
 
+## Raw Feature Correlations
+
+These heatmaps show how the 72 raw features correlate with future stock log returns across 1-25 day horizons, computed over 10 years of daily data using 896 companies.
+
+### Cross-sectional Pearson (per day, across companies)
+
+<p align="center">
+  <img src="plots/mean_cross_sectional_pearson.png" alt="Demo">
+</p>
+
+### Time-series Pearson (per company, across time)
+
+<p align="center">
+  <img src="plots/mean_time_series_pearson.png" alt="Demo">
+</p>
+
+Detailed look
+
+<p align="center">
+  <img src="plots/features.png" alt="Demo">
+</p>
 
 ## Training universe
 
