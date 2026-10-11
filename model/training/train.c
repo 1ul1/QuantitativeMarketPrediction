@@ -54,12 +54,25 @@ void train(
         for (int i = 0; i < NR_COMPANIES; i += 1) {
             individual_updates[i] = (double*)calloc(WEIGHTS->len_weights + WEIGHTS->len_bias, sizeof(double));
         }
+
+        double* average_features = (double*)malloc(NR_FEATURES * sizeof(double));
         
         for (int time = 20; time < MARKET->count; time += 1) {
 
             if (train_rule(time)) {continue;}
             
             double* updates = (double*)calloc(WEIGHTS->len_weights + WEIGHTS->len_bias, sizeof(double));
+
+            // MEAN FEATURES
+            memset(average_features, 0, NR_FEATURES * sizeof(double));
+            
+            #pragma omp parallel for num_threads(NR_THREADS)
+            for (int f = 0; f < NR_FEATURES; f += 1) {
+                for (int i = 0; i < NR_COMPANIES; i += 1) {
+                    average_features[f] += features[time][i][f];
+                }
+                average_features[f] /= NR_COMPANIES;
+            }
 
             // calculate gi for each wi and save it in updates
             #pragma omp parallel for num_threads(NR_THREADS)
@@ -74,6 +87,19 @@ void train(
                         updates[i] += individual_updates[j][i];
                     }
                 }
+
+            // Remove Average Feature * Average Error from gradient
+            #pragma omp parallel for num_threads(NR_THREADS)
+            for (int h = 0; h < NR_HORIZONS; h += 1) {
+                if (!horizon_check(time, HORIZONS[h], 0)) {continue;}
+                
+                double average_error = updates[WEIGHTS->len_weights + h];
+                
+                int start = NR_FEATURES * h, end = start + NR_FEATURES;
+                for (int i = start; i < end; i += 1) {
+                    updates[i] -= average_features[i - start] * average_error;
+                }
+            }
 
             // update wi using -= ALPHA * gi
             for (int i = 0; i < WEIGHTS->len_weights; i += 1) {
@@ -90,6 +116,7 @@ void train(
             free(individual_updates[i]);
         }
         free(individual_updates);
+        free(average_features);
     }
 
     double* ans2 = calloc(NR_HORIZONS, sizeof(double));

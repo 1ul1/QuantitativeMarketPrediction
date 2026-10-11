@@ -1,5 +1,18 @@
 #include "utils.h"
 
+// depending on cross sectional pearson for raw_features, i make them more relevant
+// https://github.com/1ul1/QuantitativeMarketPrediction/blob/main/plots/features.png
+double multiplier(int i) {
+    if (
+        (i >= 0 && i <= 5) ||
+        (i >= 12 && i <= 29) ||
+        (i >= 44 && i <= 49) ||
+        (i >= 62 && i <= 64) ||
+        (i >= 68 && i <= 69)
+    ) {return 3.0;}
+    return 1.0;
+}
+
 void adjust_updates(const Company* company,
     double* updates,
     const double* features,
@@ -21,7 +34,7 @@ void adjust_updates(const Company* company,
     // printf("ERROR %.16f \n", error);
 
     for (int i = start; i < end; i += 1) {
-        updates[i] += (error * features[i - start] + LAMBDA * WEIGHTS->weights[i]) / NR_COMPANIES;
+        updates[i] += (error * features[i - start] * multiplier(i - start) + LAMBDA * WEIGHTS->weights[i]) / NR_COMPANIES;
     }
     updates[WEIGHTS->len_weights + start / NR_FEATURES] += error / NR_COMPANIES;
 }

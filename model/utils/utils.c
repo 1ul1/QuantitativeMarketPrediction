@@ -302,6 +302,8 @@ void print_skill(double*** features) {
 
     for (int i = 0; i < NR_HORIZONS; i += 1) {
         printf("TS for %d days ahead: %.16f\n", HORIZONS[i], ans1[i]);
+    }
+    for (int i = 0; i < NR_HORIZONS; i += 1) {
         printf("IC for %d days ahead: %.16f\n", HORIZONS[i], ans2[i]);
     }
     

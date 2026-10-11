@@ -17,7 +17,7 @@ void model(
     TODAY = is_today(COMPANY);
     LAST = TODAY ? COMPANY->count - 1: COMPANY->count;
 
-    ALPHA = 0.001;
+    ALPHA = 0.00025;
     BETA = 0.01;
     LAMBDA = 0.000001;
     EPOCHS = 1;

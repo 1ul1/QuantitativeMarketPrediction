@@ -142,6 +142,7 @@ void training(
 
 void calculate_means_sds(double*** features);
 void calculate_untrained_features(double*** features);
+double multiplier(int i);
 void adjust_updates(const Company* company,
     double* updates,
     const double* features,

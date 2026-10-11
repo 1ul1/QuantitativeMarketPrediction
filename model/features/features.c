@@ -205,6 +205,7 @@ void calculate_raw_features(double* features, const Company* company, int time) 
             alpha_20 = log(s1.c / s20.c ) / 19 - beta_20 * log(market_s1.c / market_s20.c ) / 19;
     features[70] = log(s.c / s1.c) - alpha_10 - beta_10 * log(market_s.c / market_s1.c);
     features[71] = log(s.c / s1.c) - alpha_20 - beta_20 * log(market_s.c / market_s1.c);
+    // --------------------------------------------------------------------------------
 }
 
 void calculate_features(double** features) {

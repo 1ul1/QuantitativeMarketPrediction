@@ -42,7 +42,7 @@ For a given ticker and date, each configured horizon returns:
 
 ## Results <br> RMSE + IC
 
-### Walk-forward test
+### Chronological holdout Evaluationlite
 
 <p align="center">
   <img src="./plots/model_results.png" alt="Model Results" width="600">
@@ -60,11 +60,11 @@ Therefore, all metrics are computed on companies and time windows never seen dur
 
 *Note*: Each horizon is an independent model with its own weights, they only share the same features for a given company at a given time.
 
-*Observations*: 
-- Features look back at most 20 days, and the cross-sectional IC results, that ignore the market part of the forecast, follow that window exactly. Close future is mostly noise and beyond 30 days, that same history carries too little relevant information, in between is where it fits.
-- All three metrics are positive at every horizon. Cross-sectional IC constantly climbs and peaks at day 15.
-- Time-series IC and RMSE relative gain continue increasing on the far future because both include the market part of the forecast.
-- The period of interest therefore remains 1-20 days, when the model actually holds stock specific prediction power.
+***Observations***: 
+- Features look back at most 20 days, and the cross-sectional IC results, that ignore the market part of the forecast, follow that window exactly. Close future is mostly noise and beyond 35 days, that same history carries too little relevant information, in between is where it fits.
+- The early peak is the stable result. Rerunning with the holdout starting at 2024-01 and 2025-10 puts it at day 14, day 10 and day 13, always between +0.036 and +0.053, and the climb through days 3 to 10 has the same shape every time.
+- Everything past roughly day 25 is window dependent. The same quantity varying so much on the same model means the long horizons are measuring the period, not the model.
+- The period of interest therefore remains 1-25 days, when the model actually holds stock specific prediction power.
 
 <br>
 
@@ -102,29 +102,26 @@ $$
 
 | Horizon |    RMSE |   TS IC |   CS IC |
 | ------: | ------: | ------: | ------: |
-|   1 day | +0.019% | +0.0265 | +0.0123 |
-|  2 days | +0.030% | +0.0422 | +0.0135 |
-|  3 days | +0.098% | +0.0546 | +0.0210 |
-|  4 days | +0.243% | +0.0809 | +0.0267 |
-|  5 days | +0.201% | +0.0761 | +0.0294 |
-|  6 days | +0.198% | +0.0762 | +0.0311 |
-|  7 days | +0.185% | +0.0723 | +0.0318 |
-|  8 days | +0.203% | +0.0763 | +0.0326 |
-|  9 days | +0.196% | +0.0756 | +0.0335 |
-| 10 days | +0.142% | +0.0727 | +0.0341 |
-| 15 days | +0.048% | +0.0729 | +0.0378 |
-| 20 days | +0.208% | +0.0932 | +0.0363 |
-| 30 days | +0.675% | +0.1530 | +0.0297 |
-| 50 days | +1.251% | +0.1831 | +0.0102 |
-| 75 days | +1.402% | +0.1469 | +0.0243 |
+|   1 day | +0.097% | +0.0576 | +0.0167 |
+|  2 days | +0.043% | +0.0373 | +0.0195 |
+|  3 days | +0.142% | +0.0636 | +0.0290 |
+|  5 days | +0.278% | +0.0927 | +0.0405 |
+| 10 days | +0.435% | +0.1132 | +0.0532 |
+| 15 days | +0.547% | +0.1280 | +0.0512 |
+| 20 days | +0.695% | +0.1449 | +0.0524 |
+| 25 days | +0.799% | +0.1534 | +0.0493 |
+| 30 days | +0.908% | +0.1636 | +0.0445 |
+| 35 days | +1.041% | +0.1761 | +0.0421 |
+| 50 days | +1.318% | +0.1800 | +0.0279 |
+| 75 days | +1.585% | +0.1736 | +0.0294 |
 
 *Positive RMSE values indicate lower RMSE than the baseline.*
 
-***Observations** for the time window of interest 1-20 days*:
+***Observations***:
 - All effects are small in absolute terms, but my baseline is already very hard to beat.
-- An earlier run, trained on 2016–2023 (inclusive) and scored from 2024 til present, showed a noticeably weaker signal (CS IC peaked at +0.014 at 4 days and faded by 10 days). Either the model benefits that much from training on the most recent year, or 2024 was an unusually hard year for it.
-- RMSE improvement peaks at 4 days (+0.243%) and stays near +0.2% until day 9. Cross-sectional IC is positive at every horizon.
 - The time-series IC runs several times larger than the cross-sectional IC at every horizon. The time-series keeps the market component, while cross-sectional IC removes it by default. The gap between the two is exactly that market component.
+- All three metrics are positive at every horizon. Cross-sectional IC constantly climbs and peaks at day 10 (+0.0532), then holds above +0.050 through day 23.
+- Time-series IC and RMSE relative gain continue increasing on the far future because both include the market part of the forecast. RMSE rises without ever turning, from +0.097% at 1 day to +1.585% at day 75.
 
 
 ## Features & Mathematics

@@ -64,6 +64,7 @@ def train():
         while True:
             lib.training(COMPANIES, UNTRAINED_COMPANIES, MARKET, WEIGHTS)
             WEIGHTS.static_save()
+            break
     except Exception as e:
         print(e)
 
