@@ -11,14 +11,14 @@ void train(
     double*** features = (double***)malloc(sizeof(double**) * (MARKET->count));
     double*** untrained_features = (double***)malloc(sizeof(double**) * (MARKET->count));
     
-    for (int time = 20; time < MARKET->count; time += 1) {
+    for (int time = LOOKBACK; time < MARKET->count; time += 1) {
         features[time] = (double**)malloc(sizeof(double*) * NR_COMPANIES);
         for (int i = 0; i < NR_COMPANIES; i += 1) {
             features[time][i] = (double*)malloc(sizeof(double) * NR_FEATURES);
         }
     }
         
-    for (int time = 20; time < MARKET->count; time += 1) {
+    for (int time = LOOKBACK; time < MARKET->count; time += 1) {
         untrained_features[time] = (double**)malloc(sizeof(double*) * UNTRAINED_COMPANIES->len_companies);
         for (int i = 0; i < UNTRAINED_COMPANIES->len_companies; i += 1) {
             untrained_features[time][i] = (double*)malloc(sizeof(double) * NR_FEATURES);
@@ -26,7 +26,7 @@ void train(
     }
 
     #pragma omp parallel for num_threads(NR_THREADS)
-    for (int time = 20; time < MARKET->count; time += 1) {
+    for (int time = LOOKBACK; time < MARKET->count; time += 1) {
         for (int i = 0; i < NR_COMPANIES; i += 1) {
             calculate_raw_features(features[time][i], &(COMPANIES->companies[i]), time);
         }
@@ -57,7 +57,7 @@ void train(
 
         double* average_features = (double*)malloc(NR_FEATURES * sizeof(double));
         
-        for (int time = 20; time < MARKET->count; time += 1) {
+        for (int time = LOOKBACK; time < MARKET->count; time += 1) {
 
             if (train_rule(time)) {continue;}
             
@@ -97,7 +97,7 @@ void train(
                 
                 int start = NR_FEATURES * h, end = start + NR_FEATURES;
                 for (int i = start; i < end; i += 1) {
-                    updates[i] -= average_features[i - start] * average_error;
+                    //updates[i] -= average_features[i - start] * average_error * multiplier(i - start);
                 }
             }
 
@@ -139,13 +139,13 @@ void train(
         print_skill(untrained_features);
         
         if (nr > (int)(NR_HORIZONS * 0.5)) {ALPHA /= 2;}
-        for (int time = 20; time < MARKET->count; time += 1) {
+        for (int time = LOOKBACK; time < MARKET->count; time += 1) {
             for (int i = 0; i < NR_COMPANIES; i += 1) {
                 free(features[time][i]);
             }
             free(features[time]);
         }
-        for (int time = 20; time < MARKET->count; time += 1) {
+        for (int time = LOOKBACK; time < MARKET->count; time += 1) {
             for (int i = 0; i < UNTRAINED_COMPANIES->len_companies; i += 1) {
                 free(untrained_features[time][i]);
             }

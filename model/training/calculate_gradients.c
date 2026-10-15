@@ -3,13 +3,6 @@
 // depending on cross sectional pearson for raw_features, i make them more relevant
 // https://github.com/1ul1/QuantitativeMarketPrediction/blob/main/plots/features.png
 double multiplier(int i) {
-    if (
-        (i >= 0 && i <= 5) ||
-        (i >= 12 && i <= 29) ||
-        (i >= 44 && i <= 49) ||
-        (i >= 62 && i <= 64) ||
-        (i >= 68 && i <= 69)
-    ) {return 3.0;}
     return 1.0;
 }
 

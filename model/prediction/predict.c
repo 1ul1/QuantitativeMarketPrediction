@@ -40,7 +40,7 @@ void populate_error_metrics(double** features) {
     
     // -------------------------------------------------------------------------------------------
     // BIAS
-    for (int time = 20; time < MARKET->count; time += 1) {
+    for (int time = LOOKBACK; time < MARKET->count; time += 1) {
 
         if (train_rule(time) == 1) {continue;}
         
@@ -63,7 +63,7 @@ void populate_error_metrics(double** features) {
     memset(range, 0, sizeof(int) * PREDICTION->len_days);
 
     // Standard Deviation
-    for (int time = 20; time < MARKET->count; time += 1) {
+    for (int time = LOOKBACK; time < MARKET->count; time += 1) {
 
         if (train_rule(time) != 1) {continue;}
         

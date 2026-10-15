@@ -180,6 +180,7 @@ extern int TODAY;
 extern int LAST;
 
 extern int NR_FEATURES;
+extern int LOOKBACK;
 extern int NR_HORIZONS;
 extern int HORIZONS[];
 

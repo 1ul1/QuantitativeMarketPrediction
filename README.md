@@ -42,7 +42,7 @@ For a given ticker and date, each configured horizon returns:
 
 ## Results <br> RMSE + IC
 
-### Chronological holdout Evaluationlite
+### Chronological holdout Evaluation
 
 <p align="center">
   <img src="./plots/model_results.png" alt="Model Results" width="600">
@@ -54,6 +54,8 @@ For a given ticker and date, each configured horizon returns:
   <sub><em>TS</em> = time-series IC &nbsp;|&nbsp; <em>CS</em> = cross-sectional IC</sub>
 </p>
 
+***Cross-Sectional IC peaks at day 15 with +0.0287***
+
 The model is trained only on data from 2016 through 2024, inclusive, on ~900 companies, then scored from 2025 till today on ~100 companies that were held-out during training.
 
 Therefore, all metrics are computed on companies and time windows never seen during training with no lookahead, simulating real live forecasting conditions.
@@ -61,10 +63,8 @@ Therefore, all metrics are computed on companies and time windows never seen dur
 *Note*: Each horizon is an independent model with its own weights, they only share the same features for a given company at a given time.
 
 ***Observations***: 
-- Features look back at most 20 days, and the cross-sectional IC results, that ignore the market part of the forecast, follow that window exactly. Close future is mostly noise and beyond 35 days, that same history carries too little relevant information, in between is where it fits.
-- The early peak is the stable result. Rerunning with the holdout starting at 2024-01 and 2025-10 puts it at day 14, day 10 and day 13, always between +0.036 and +0.053, and the climb through days 3 to 10 has the same shape every time.
-- Everything past roughly day 25 is window dependent. The same quantity varying so much on the same model means the long horizons are measuring the period, not the model.
-- The period of interest therefore remains 1-25 days, when the model actually holds stock specific prediction power.
+- Features keep fine detail only for the last 20 days, and the cross-sectional IC results, that ignore the market part of the forecast, follow that window exactly. Close future is mostly noise and past that window the features carry too little relevant information, in between is where it fits.
+- The early peak is the stable result, everything past roughly day 25 is window dependent.
 
 <br>
 
@@ -100,28 +100,38 @@ $$
 CS_t=\frac{\text{cov}\big(\hat r_{i,t},r_{i,t}\big)}{\sigma_{\hat r}\sigma_r}
 $$
 
-| Horizon |    RMSE |   TS IC |   CS IC |
+| Horizon |    RMSE Improvement |   Time-Series IC |   Cross-Sectional IC |
 | ------: | ------: | ------: | ------: |
-|   1 day | +0.097% | +0.0576 | +0.0167 |
-|  2 days | +0.043% | +0.0373 | +0.0195 |
-|  3 days | +0.142% | +0.0636 | +0.0290 |
-|  5 days | +0.278% | +0.0927 | +0.0405 |
-| 10 days | +0.435% | +0.1132 | +0.0532 |
-| 15 days | +0.547% | +0.1280 | +0.0512 |
-| 20 days | +0.695% | +0.1449 | +0.0524 |
-| 25 days | +0.799% | +0.1534 | +0.0493 |
-| 30 days | +0.908% | +0.1636 | +0.0445 |
-| 35 days | +1.041% | +0.1761 | +0.0421 |
-| 50 days | +1.318% | +0.1800 | +0.0279 |
-| 75 days | +1.585% | +0.1736 | +0.0294 |
+|   1 day | -0.054% | +0.0253 | +0.0091 |
+|  2 days | -0.007% | +0.0529 | +0.0104 |
+|  3 days | +0.023% | +0.0605 | +0.0137 |
+|  5 days | +0.096% | +0.0774 | +0.0211 |
+| 10 days | +0.211% | +0.1070 | +0.0272 |
+| 15 days | +0.150% | +0.1142 | +0.0287 |
+| 20 days | +0.292% | +0.1325 | +0.0238 |
+| 25 days | +0.321% | +0.1400 | +0.0165 |
+| 30 days | +0.481% | +0.1579 | +0.0106 |
+| 35 days | +0.497% | +0.1549 | +0.0089 |
+| 50 days | +0.829% | +0.1706 | +0.0163 |
+| 75 days | +0.366% | +0.1436 | -0.0052 |
 
 *Positive RMSE values indicate lower RMSE than the baseline.*
 
 ***Observations***:
 - All effects are small in absolute terms, but my baseline is already very hard to beat.
-- The time-series IC runs several times larger than the cross-sectional IC at every horizon. The time-series keeps the market component, while cross-sectional IC removes it by default. The gap between the two is exactly that market component.
-- All three metrics are positive at every horizon. Cross-sectional IC constantly climbs and peaks at day 10 (+0.0532), then holds above +0.050 through day 23.
-- Time-series IC and RMSE relative gain continue increasing on the far future because both include the market part of the forecast. RMSE rises without ever turning, from +0.097% at 1 day to +1.585% at day 75.
+- The time-series IC runs larger than the cross-sectional IC through the first 20 days. The time-series keeps the market component, while cross-sectional IC removes it by default. The gap between the two is exactly that market component.
+- Time-series IC and RMSE relative gain keep increasing far past the detailed window because both include the market part of the forecast.
+
+***Additional Note***:
+
+- A second holdout starting 2026-01 reaches a higher cross-sectional IC than the one reported above, +0.040 at day 14 against +0.029 at day 15 here. I do not headline it because that window has such a small holdout.
+- Comparing the two runs horizon by horizon is more informative than either one alone:
+
+    - The cross-sectional IC curves correlate 0.92 across the 75 horizons;
+    - The time-series IC curves correlate -0.09 and the RMSE improvement curves correlate -0.64;
+
+   The less market a metric contains, the better it reproduces on a different window.
+
 
 
 ## Features & Mathematics
@@ -192,51 +202,21 @@ $$x=\max\!\Big(\bar x-c\sigma_x,\min\big(\bar x+c\sigma_x,x\big)\Big)$$
 
 ## Raw Features' Correlations
 
-These heatmaps show how the 72 raw features correlate with future stock log returns across 1-25 day horizons, computed over 10 years of daily data using 896 companies.
+How the 72 raw features correlate with future stock log returns across 1-25 day horizons, computed over 10 years of daily data using 896 companies.
 
 ### Cross-sectional Pearson (per day, across companies)
 
 <p align="center">
-  <img src="plots/mean_cross_sectional_pearson.png" alt="Demo">
+  <img src="plots/mean_cross_sectional_pearson.png" alt="Demo" width="600">
 </p>
 
 ### Time-series Pearson (per company, across time)
 
 <p align="center">
-  <img src="plots/mean_time_series_pearson.png" alt="Demo">
+  <img src="plots/mean_time_series_pearson.png" alt="Demo" width="600">
 </p>
 
 <a href="plots/features.png"><u>Detailed results here.</u></a>
-
-## Training universe
-
-One JSON file per company, plus a single SPY file used as the market reference. All are aligned in time and for each day they reveal `v`, `vw`, `o`, `c`, `h`, `l`, `t`, `n`.
-
-A company enters the universe only if:
- 
-- every field of every sample is strictly positive
-- the history is complete and unbroken over the full data range
-
-Everything else is dropped by the scraper. The same check runs before a forecast, so a ticker that could not have entered training cannot be predicted on either.
-
-<!-- ![Price distribution](plots/stock_universe_plots/price_distribution.png)
-
-![Volume distribution](plots/stock_universe_plots/volume_distribution.png)
-
-![Volatility distribution](plots/stock_universe_plots/volatility_distribution.png)
-
-![Volatility vs liquidity](plots/stock_universe_plots/volatility_vs_liquidity.png) -->
-
-<table width="1200" align ="center">
-  <tr>
-    <td width="400"><img src="plots/stock_universe_plots/price_distribution.png" width="100%"></td>
-    <td width="400"><img src="plots/stock_universe_plots/volume_distribution.png" width="100%"></td>
-  </tr>
-  <tr>
-    <td><img src="plots/stock_universe_plots/volatility_distribution.png" width="100%"></td>
-    <td><img src="plots/stock_universe_plots/volatility_vs_liquidity.png" width="100%"></td>
-  </tr>
-</table>
 
 ## Model
 
@@ -247,7 +227,7 @@ int HORIZONS[4] = {1, 5, 10, 20};
 ```
 The Python side reads this definition and creates the appropriate *model_weights* file, while the C side trains every horizon listed.
 
-by default, for 72 features per sample:
+by default, for 72 detailed short horizon features per sample:
 
 | Horizon | Look-ahead | Weight slice | Bias index |
 |---|---|---|---|
@@ -256,53 +236,7 @@ by default, for 72 features per sample:
 | 10 day | `t + 10` | `weights[144:216]` | `bias[2]` |
 | 20 day | `t + 20` | `weights[216:288]` | `bias[3]` |
 
-All parameters flow through both training stages below: first fit across the whole universe, then finetune to one company at a time.
-
-## Training - 2 stages
-
-### Stage 1 | Cross-sectional pretraining
-
-Which days are trainable can be decided by different training rules (*model/utils/train_rules.c*). A rule can describe any pattern of held-out periods, such as a single continous calendar window or a 30-day holdout every 90 days. The same rules are used by pretraining, finetuning and forecasting, synchronized using Unix timestamps, so all three always agree on what the model has and hasn't seen.
-
-Training walks forward through calendar time across the *entire* company universe, skipping the held-out periods:
-
-1. At each trading day, compute the prediction error for every company in the universe and average the gradient across all of them: a full batch over the cross-section, to minimize the effects of constant Market features among all companies on that day.
-2. After a full pass, recompute RMSE on all 4 horizons. If every horizon got strictly worse, halve the learning rate, otherwise repeat.
-
-The weights are also constantly saved statically on disk every couple of cycles during training.
-
-### Centering and scaling
-
-All features are computed once at startup for every sample, in parallel, and reused across training cycles.
-
-They are centered, clipped and scaled using each feature's row's mean and standard deviation.
-
-Multilinearity between features is likely, due to most of them being logs derived from the same kind of data, therefore Ridge Regression is needed. The lambda penalty penalizes equally, so standardization is needed.
-
-Even though the features were chosen to be around the same scale, without centering and scaling, they drift apart dramatically, illustrated by the graphs below:
-
-<p align="center">
-  <img src="plots/weight_heatmap.png" alt="Demo" width="800">
-</p>
-
-### VS
-
-Scaled & centered (**NOT CLIPPED**) features' IQR
-
-<p align="center">
-  <img src="plots/iqr_indexed.png" alt="Demo"  width="800">
-</p>
-
-
-### Stage 2 | Per-ticker finetuning & calibration
-
-Every time a forecast is requested for a ticker, the pretrained weights are adapted specifically to that company before predicting, using ridge regression once again.
-
-If the most recent bar in the data belongs to today's still-open session, it's excluded from both fine-tuning and calibration, so the model never finetunes or predicts on a price that hasn't closed yet.
-
-1. **Fine-tune** on that one company, over its whole history except the held-out periods.
-2. **Calibrate** on the held-out periods only. Predictions there are compared against what actually happened, giving the per-horizon bias and after removing it, the residual standard deviation. Neither stage fit on that window, so these are real out-of-sample residuals for this ticker.
-3. **Predict** from the last closed bar, apply the bias, divide by the residual standard deviation for the forecast strength.
+All parameters go through both training stages defined [here](./README_TRAINING.md): first fit across the whole universe, then finetune to one company at a time.
 
 ## How to run
 

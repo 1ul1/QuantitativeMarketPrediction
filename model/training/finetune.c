@@ -12,7 +12,7 @@ void finetune(
 
         double* updates = (double*)calloc(WEIGHTS->len_weights + WEIGHTS->len_bias, sizeof(double));
             
-        for (int time = 20; time < LAST; time += 1) {
+        for (int time = LOOKBACK; time < LAST; time += 1) {
 
             if (train_rule(time)) {continue;}
 
