@@ -2,7 +2,7 @@
 
 void calculate_raw_features(double* features, const Company* company, int time) {
 
-    if (time - 20 < 0) {
+    if (time - LOOKBACK < 0) {
         memset(features, 0, sizeof(double) * NR_FEATURES);
         return;
     }
@@ -206,11 +206,22 @@ void calculate_raw_features(double* features, const Company* company, int time) 
     features[70] = log(s.c / s1.c) - alpha_10 - beta_10 * log(market_s.c / market_s1.c);
     features[71] = log(s.c / s1.c) - alpha_20 - beta_20 * log(market_s.c / market_s1.c);
     // --------------------------------------------------------------------------------
+    //                                                                                                Big lookback features
+    // --------------------------------------------------------------------------------------------------------------------
+    int i = 72;
+    for (int idx = time - 40; idx >= time - LOOKBACK; idx -= 20) {
+        features[i] = log(s.c / company->samples[idx].c);        i += 1;
+        features[i] = volatility(idx + 1, time + 1, company);    i += 1;
+        features[i] = dispertion(idx + 1, time + 1, company);    i += 1;
+        features[i] = stability(idx + 1, time + 1, company) ;    i += 1;
+    }
+    // printf("%d\n", i);
+    // exit(1);
 }
 
 void calculate_features(double** features) {
     #pragma omp parallel for num_threads(NR_THREADS)
-    for (int time = 20; time < MARKET->count; time += 1) {
+    for (int time = LOOKBACK; time < MARKET->count; time += 1) {
         calculate_raw_features(features[time], COMPANY, time);
         for (int f = 0; f < NR_FEATURES; f += 1) {
             features[time][f] = max(

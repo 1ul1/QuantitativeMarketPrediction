@@ -3,7 +3,7 @@
 void calculate_means_sds(double*** features) {
     int range = 0;
     // Means
-    for (int time = 20; time < MARKET->count; time += 1) {
+    for (int time = LOOKBACK; time < MARKET->count; time += 1) {
         if (train_rule(time)) {continue;}
         for (int i = 0; i < NR_COMPANIES; i += 1) {
             for (int f = 0; f < NR_FEATURES; f += 1) {
@@ -16,7 +16,7 @@ void calculate_means_sds(double*** features) {
         WEIGHTS->means[f] /= (range * NR_COMPANIES);
     }
     // Standard_deviations
-    for (int time = 20; time < MARKET->count; time += 1) {
+    for (int time = LOOKBACK; time < MARKET->count; time += 1) {
         if (train_rule(time)) {continue;} 
         for (int i = 0; i < NR_COMPANIES; i += 1) {
             for (int f = 0; f < NR_FEATURES; f += 1) {
@@ -36,7 +36,7 @@ void calculate_means_sds(double*** features) {
     // Center and Scale || FIX all features among the universe
     #pragma omp parallel for num_threads(NR_THREADS)
     
-    for (int time = 20; time < MARKET->count; time += 1) {   
+    for (int time = LOOKBACK; time < MARKET->count; time += 1) {   
         for (int i = 0; i < NR_COMPANIES; i += 1) {
             for (int f = 0; f < NR_FEATURES; f += 1) {
                 features[time][i][f] = max(
@@ -53,7 +53,7 @@ void calculate_means_sds(double*** features) {
 void calculate_untrained_features(double*** features) {
     #pragma omp parallel for num_threads(NR_THREADS)
     
-    for (int time = 20; time < MARKET->count; time += 1) {
+    for (int time = LOOKBACK; time < MARKET->count; time += 1) {
         if (!train_rule(time)) {continue;}
         for (int i = 0; i < UNTRAINED_COMPANIES->len_companies; i += 1) {
             calculate_raw_features(features[time][i], &(UNTRAINED_COMPANIES->companies[i]), time);

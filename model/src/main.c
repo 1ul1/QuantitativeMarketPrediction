@@ -17,14 +17,14 @@ void model(
     TODAY = is_today(COMPANY);
     LAST = TODAY ? COMPANY->count - 1: COMPANY->count;
 
-    ALPHA = 0.00025;
+    ALPHA = 0.00005;
     BETA = 0.01;
-    LAMBDA = 0.000001;
-    EPOCHS = 1;
+    LAMBDA = 0.0001;
+    EPOCHS = 5;
 
     double*** features = (double***)malloc(sizeof(double**));
     *features = (double**)malloc(sizeof(double*) * MARKET->count);
-    for (int time = 20; time < MARKET->count; time += 1) {
+    for (int time = LOOKBACK; time < MARKET->count; time += 1) {
         (*features)[time] = (double*)malloc(sizeof(double) * NR_FEATURES);
     }
     calculate_features(*features);
@@ -45,7 +45,7 @@ void model(
 
     populate((*features)[LAST - 1]);
 
-    for (int time = 20; time < MARKET->count; time += 1) {
+    for (int time = LOOKBACK; time < MARKET->count; time += 1) {
         free((*features)[time]);
     }
     free(*features);

@@ -7,10 +7,11 @@ Prediction* PREDICTION = NULL;
 Companies* COMPANIES = NULL;
 Companies* UNTRAINED_COMPANIES = NULL;
 
-int NR_FEATURES = 72;
+int NR_FEATURES = 168;
+int LOOKBACK = 500;
 
-int NR_HORIZONS = 5;
-int HORIZONS[5] = {5, 10, 15, 20, 25};
+int NR_HORIZONS = 4;
+int HORIZONS[4] = {5, 10, 15, 20};
 
 int NR_COMPANIES = 0;
 int NR_THREADS = 12;
@@ -21,7 +22,7 @@ double BETA = 0.001;
 double LAMBDA = 0.00001;
 int EPOCHS = 10;
 
-double CLIP = 10;
+double CLIP = 100.0;
 
 int TODAY = 0;
 int LAST = 0;
