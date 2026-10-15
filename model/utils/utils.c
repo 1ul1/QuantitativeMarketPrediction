@@ -52,7 +52,7 @@ void error(double* ans, double*** features, int toggle) {
     double* expected = (double*)malloc(sizeof(double) * NR_HORIZONS);
     int* count = (int*)calloc(NR_HORIZONS, sizeof(int));
     
-    int start = 20, end = MARKET->count - 20;
+    int start = LOOKBACK, end = MARKET->count;
     Companies* c = COMPANIES;
 
     if (toggle == 0) {c = UNTRAINED_COMPANIES;}
@@ -92,7 +92,7 @@ void baseline_error(double* ans, int toggle) {
     double* expected = (double*)malloc(sizeof(double) * NR_HORIZONS);
     int* count = (int*)calloc(NR_HORIZONS, sizeof(int));
     
-    int start = 20, end = MARKET->count - 20;
+    int start = LOOKBACK, end = MARKET->count;
     Companies* c = COMPANIES;
 
     if (toggle == 0) {
@@ -129,7 +129,7 @@ void baseline_error(double* ans, int toggle) {
 
 // only for untrained
 // time series & its transpose aka information coefficient
-void ts_and_ic(double* ans1, double* ans2, double*** features) {
+void ts_and_ic(double* ans1, double* ans2, double* ans3, double*** features) {
     double  ***x = (double***)malloc(sizeof(double**) * MARKET->count),
             ***y = (double***)malloc(sizeof(double**) * MARKET->count),
             *range  = (double*)calloc(NR_HORIZONS, sizeof(double));
@@ -144,13 +144,13 @@ void ts_and_ic(double* ans1, double* ans2, double*** features) {
     }
 
     #pragma omp parallel for num_threads(NR_THREADS)
-    for (int time = 20; time < MARKET->count; time += 1) {
+    for (int time = LOOKBACK; time < MARKET->count; time += 1) {
         for (int i = 0; i < UNTRAINED_COMPANIES->len_companies; i += 1) {
             predict(x[time][i], features[time][i]);
             expect(y[time][i], time, &(UNTRAINED_COMPANIES->companies[i]), 1);
         }
     }
-    for (int time = 20; time < MARKET->count; time += 1) {
+    for (int time = LOOKBACK; time < MARKET->count; time += 1) {
         for (int idx = 0; idx < NR_HORIZONS; idx += 1) {
             if (horizon_check(time, HORIZONS[idx], 1)) {
                 range[idx] += 1;
@@ -164,7 +164,7 @@ void ts_and_ic(double* ans1, double* ans2, double*** features) {
         }
     }
 
-    // ts - Perason per company accross all days
+    // ts ic - Perason per company accross all days
     double  *mean_x = (double*)calloc(NR_HORIZONS, sizeof(double)),
             *mean_y = (double*)calloc(NR_HORIZONS, sizeof(double));
 
@@ -177,7 +177,7 @@ void ts_and_ic(double* ans1, double* ans2, double*** features) {
         memset(mean_x, 0, sizeof(double) * NR_HORIZONS);
         memset(mean_y, 0, sizeof(double) * NR_HORIZONS);
         
-        for (int time = 20; time < MARKET->count; time += 1) {
+        for (int time = LOOKBACK; time < MARKET->count; time += 1) {
             for (int idx = 0; idx < NR_HORIZONS; idx += 1) {
                 if (horizon_check(time, HORIZONS[idx], 1)) {
                     mean_x[idx] += x[time][i][idx];
@@ -194,7 +194,7 @@ void ts_and_ic(double* ans1, double* ans2, double*** features) {
         memset(sd_x, 0, sizeof(double) * NR_HORIZONS);
         memset(sd_y, 0, sizeof(double) * NR_HORIZONS);
         
-        for (int time = 20; time < MARKET->count; time += 1) {
+        for (int time = LOOKBACK; time < MARKET->count; time += 1) {
             for (int idx = 0; idx < NR_HORIZONS; idx += 1) {
                 if (horizon_check(time, HORIZONS[idx], 1)) {
                     double aux_x, aux_y;
@@ -216,52 +216,90 @@ void ts_and_ic(double* ans1, double* ans2, double*** features) {
         ans1[idx] /= UNTRAINED_COMPANIES->len_companies;
     }
     
-    // ic - Pearson per day between all companies
+    // cs ic - Pearson per day between all companies
+    // + beta adjusted cs ic for ans3
+    // my model uses market specific features, so each stock s log ret must be adjusted
+    // normal cs ic removes mean common not each component
     memset(mean_x, 0, sizeof(double) * NR_HORIZONS);
     memset(mean_y, 0, sizeof(double) * NR_HORIZONS);
 
-    for (int time = 20; time < MARKET->count; time += 1) {
+    double ***x_beta = (double***)malloc(sizeof(double**) * MARKET->count);
+
+    for (int time = 0; time < MARKET->count; time += 1) {
+        x_beta[time] = (double**)malloc(sizeof(double*) * UNTRAINED_COMPANIES->len_companies);
+        for (int i = 0; i < UNTRAINED_COMPANIES->len_companies; i += 1) {
+            x_beta[time][i] = (double*)calloc(NR_HORIZONS, sizeof(double));
+        }
+    }
+
+    double* mean_x_beta = (double*)calloc(NR_HORIZONS, sizeof(double));
+    double* numerator_beta = (double*)calloc(NR_HORIZONS, sizeof(double));
+    double* sd_x_beta = (double*)calloc(NR_HORIZONS, sizeof(double));
+
+    for (int time = LOOKBACK; time < MARKET->count; time += 1) {
 
         memset(mean_x, 0, sizeof(double) * NR_HORIZONS);
         memset(mean_y, 0, sizeof(double) * NR_HORIZONS);
+        memset(mean_x_beta, 0, sizeof(double) * NR_HORIZONS);
         
         for (int i = 0; i < UNTRAINED_COMPANIES->len_companies; i += 1) {
             for (int idx = 0; idx < NR_HORIZONS; idx += 1) {
                 if (horizon_check(time, HORIZONS[idx], 1)) {
                     mean_x[idx] += x[time][i][idx];
                     mean_y[idx] += y[time][i][idx];
+                    x_beta[time][i][idx] = (
+                        x[time][i][idx]
+                        -
+                        return_covariance_to_market(
+                            time - LOOKBACK + 1, time, &(UNTRAINED_COMPANIES->companies[i]), MARKET
+                        )
+                        /
+                        (pow(volatility(time - LOOKBACK + 1, time, MARKET), 2))
+                        *
+                        log(MARKET->samples[time].c / MARKET->samples[time - LOOKBACK].c)
+                    );
+                    mean_x_beta[idx] += x_beta[time][i][idx];
                 }
             }
         }
         for (int idx = 0; idx < NR_HORIZONS; idx += 1) {
             mean_x[idx] /= UNTRAINED_COMPANIES->len_companies;
             mean_y[idx] /= UNTRAINED_COMPANIES->len_companies;
+            mean_x_beta[idx] /= UNTRAINED_COMPANIES->len_companies;
         }
         
         memset(numerator, 0, sizeof(double) * NR_HORIZONS);
         memset(sd_x, 0, sizeof(double) * NR_HORIZONS);
         memset(sd_y, 0, sizeof(double) * NR_HORIZONS);
+        memset(sd_x_beta, 0, sizeof(double) * NR_HORIZONS);
+        memset(numerator_beta, 0, sizeof(double) * NR_HORIZONS);
         
         for (int i = 0; i < UNTRAINED_COMPANIES->len_companies; i += 1) {
             for (int idx = 0; idx < NR_HORIZONS; idx += 1) {
                 if (horizon_check(time, HORIZONS[idx], 1)) {
-                    double aux_x, aux_y;
+                    double aux_x, aux_y, aux_beta;
                     aux_x = x[time][i][idx] - mean_x[idx];
                     aux_y = y[time][i][idx] - mean_y[idx];
+                    aux_beta = x_beta[time][i][idx] - mean_x_beta[idx];
                     numerator[idx] += aux_x * aux_y;
                     sd_x[idx] += pow(aux_x, 2);
                     sd_y[idx] += pow(aux_y, 2);
+                    sd_x_beta[idx] += pow(aux_beta, 2);
+                    numerator_beta[idx] += aux_beta * aux_y;
                 }
             }
         }
         for (int idx = 0; idx < NR_HORIZONS; idx += 1) {
             double denominator = (sqrt(sd_x[idx]) * sqrt(sd_y[idx]));
+            double denominator_beta = (sqrt(sd_x_beta[idx])) * sqrt(sd_y[idx]);
             
             ans2[idx] += (denominator <= 1e-15) ? 0 : numerator[idx] / denominator;
+            ans3[idx] += (denominator_beta <= 1e-15) ? 0 : numerator_beta[idx] / denominator_beta;
         }
     }
     for (int idx = 0; idx < NR_HORIZONS; idx += 1) {
         ans2[idx] /= range[idx];
+        ans3[idx] /= range[idx];
     }
 
     // Freeing
@@ -270,18 +308,24 @@ void ts_and_ic(double* ans1, double* ans2, double*** features) {
     free(numerator);
     free(sd_x);
     free(sd_y);
+    free(mean_x_beta);
+    free(numerator_beta);
+    free(sd_x_beta);
 
     for (int time = 0; time < MARKET->count; time += 1) {
         for (int i = 0; i < UNTRAINED_COMPANIES->len_companies; i += 1) {
             free(x[time][i]);
             free(y[time][i]);
+            free(x_beta[time][i]);
         }
         free(x[time]);
         free(y[time]);
+        free(x_beta[time]);
     }
     free(x);
     free(y);
     free(range);
+    free(x_beta);
 }
 
 void print_skill(double*** features) {
@@ -293,12 +337,14 @@ void print_skill(double*** features) {
     baseline_error(ans2, 0);
     
     for (int i = 0; i < NR_HORIZONS; i += 1) {
-        printf("Delta RMSE for %d days ahead: %.16f\n", HORIZONS[i], (1 -  ans1[i] / ans2[i]) * 100);
+        printf("RMSE improvement for %d days ahead: %.16f\n", HORIZONS[i], (1 -  ans1[i] / ans2[i]) * 100);
     }
 
     memset(ans1, 0, sizeof(double) * NR_HORIZONS);
     memset(ans2, 0, sizeof(double) * NR_HORIZONS);
-    ts_and_ic(ans1, ans2, features);
+    double* ans3 = calloc(NR_HORIZONS, sizeof(double));
+    
+    ts_and_ic(ans1, ans2, ans3, features);
 
     for (int i = 0; i < NR_HORIZONS; i += 1) {
         printf("TS for %d days ahead: %.16f\n", HORIZONS[i], ans1[i]);
@@ -306,7 +352,11 @@ void print_skill(double*** features) {
     for (int i = 0; i < NR_HORIZONS; i += 1) {
         printf("IC for %d days ahead: %.16f\n", HORIZONS[i], ans2[i]);
     }
+    for (int i = 0; i < NR_HORIZONS; i += 1) {
+        printf("Prediction Beta adjusted IC for %d days ahead: %.16f\n", HORIZONS[i], ans3[i]);
+    }
     
     free(ans1);
     free(ans2);
+    free(ans3);
 }
